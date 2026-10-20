@@ -1,6 +1,6 @@
 import React from 'react';
 import { BoardStore } from '../../stores/useBoardStore';
-import { LayoutGrid, Layers, FileText, Trash2, X, Sparkles } from 'lucide-react';
+import { LayoutGrid, Layers, FileText, Trash2, X, Sparkles, GitFork } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
 interface SelectionBarProps {
@@ -43,6 +43,28 @@ export const SelectionBar: React.FC<SelectionBarProps> = ({
         >
           <LayoutGrid className="w-3.5 h-3.5 text-sky-400" />
           <span>Organizar em Grade</span>
+        </button>
+
+        {/* Action: Connect Selected Cards */}
+        <button
+          type="button"
+          onClick={() => {
+            for (let i = 0; i < selectedCardIds.length - 1; i++) {
+              const fromId = selectedCardIds[i];
+              const toId = selectedCardIds[i + 1];
+              const c1 = store.cards.find((c) => c.id === fromId);
+              const c2 = store.cards.find((c) => c.id === toId);
+              if (c1 && c2) {
+                const fromPort = c1.x <= c2.x ? 'right' : 'left';
+                const toPort = c1.x <= c2.x ? 'left' : 'right';
+                store.addConnection(fromId, fromPort, toId, toPort, '⚡ Liga');
+              }
+            }
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-cyan-300 hover:text-white hover:bg-cyan-500/20 transition-colors"
+        >
+          <GitFork className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Ligar Cards</span>
         </button>
 
         {/* Action 2: Group in Zone */}

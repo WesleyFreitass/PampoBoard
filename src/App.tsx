@@ -5,7 +5,6 @@ import { FloatingDock } from './components/navigation/FloatingDock';
 import { TopHeader } from './components/navigation/TopHeader';
 import { SidebarRail } from './components/navigation/SidebarRail';
 import { ProjectsDrawer } from './components/navigation/ProjectsDrawer';
-import { TemplatesDrawer } from './components/navigation/TemplatesDrawer';
 import { SettingsDrawer } from './components/navigation/SettingsDrawer';
 import { TrashDrawer } from './components/navigation/TrashDrawer';
 import { HistoryDrawer } from './components/navigation/HistoryDrawer';
@@ -30,7 +29,7 @@ export function App() {
   const store = useBoardStore();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'boards' | 'templates' | 'settings' | 'trash' | 'history'>('boards');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'boards' | 'settings' | 'trash' | 'history'>('boards');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
@@ -105,6 +104,7 @@ export function App() {
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogout={store.logout}
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        itemsCount={store.currentCards.length}
       />
 
       {/* 220px Dynamic Sidebar Drawer according to activeSidebarTab */}
@@ -118,18 +118,8 @@ export function App() {
           isOpen={isDrawerOpen}
           onToggle={() => setIsDrawerOpen(false)}
           theme={store.theme}
-        />
-      )}
-
-      {activeSidebarTab === 'templates' && (
-        <TemplatesDrawer
-          isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          onApplyTemplate={(type) => {
-            store.applyTemplate(type);
-            setIsDrawerOpen(false);
-          }}
-          theme={store.theme}
+          cardsCount={store.currentCards.length}
+          connectionsCount={store.currentConnections.length}
         />
       )}
 

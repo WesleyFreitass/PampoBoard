@@ -105,3 +105,69 @@ export function findSnapPort(
 
   return closest;
 }
+
+export function getOptimalPortBetweenCards(
+  fromCard: BoardCard,
+  toCard: BoardCard
+): { fromPort: PortPosition; toPort: PortPosition } {
+  const fromCenterX = fromCard.x + fromCard.width / 2;
+  const fromCenterY = fromCard.y + fromCard.height / 2;
+  const toCenterX = toCard.x + toCard.width / 2;
+  const toCenterY = toCard.y + toCard.height / 2;
+
+  const dx = toCenterX - fromCenterX;
+  const dy = toCenterY - fromCenterY;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) {
+      return { fromPort: 'right', toPort: 'left' };
+    } else {
+      return { fromPort: 'left', toPort: 'right' };
+    }
+  } else {
+    if (dy > 0) {
+      return { fromPort: 'bottom', toPort: 'top' };
+    } else {
+      return { fromPort: 'top', toPort: 'bottom' };
+    }
+  }
+}
+
+export function findSnapCardOrPort(
+  pos: Position,
+  cards: BoardCard[],
+  excludeCardId?: string,
+  threshold: number = 36
+): { cardId: string; port: PortPosition; pos: Position } | null {
+  // 1. Direct port snap check
+  const portSnap = findSnapPort(pos, cards, excludeCardId, threshold);
+  if (portSnap) return portSnap;
+
+  // 2. Card bounding box with generous margin
+  for (const card of cards) {
+    if (card.id === excludeCardId) continue;
+    const margin = 24;
+    if (
+      pos.x >= card.x - margin &&
+      pos.x <= card.x + card.width + margin &&
+      pos.y >= card.y - margin &&
+      pos.y <= card.y + card.height + margin
+    ) {
+      let bestPort: PortPosition = 'left';
+      let minD = Infinity;
+      const ports: PortPosition[] = ['top', 'right', 'bottom', 'left'];
+      for (const p of ports) {
+        const portCoords = getPortCoordinates(card, p);
+        const d = Math.hypot(pos.x - portCoords.x, pos.y - portCoords.y);
+        if (d < minD) {
+          minD = d;
+          bestPort = p;
+        }
+      }
+      return { cardId: card.id, port: bestPort, pos: getPortCoordinates(card, bestPort) };
+    }
+  }
+
+  // 3. Generous proximity fallback (up to 70px)
+  return findSnapPort(pos, cards, excludeCardId, 70);
+}

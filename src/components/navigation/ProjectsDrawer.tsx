@@ -21,6 +21,8 @@ interface ProjectsDrawerProps {
   isOpen: boolean;
   onToggle: () => void;
   theme: 'dark' | 'light';
+  cardsCount?: number;
+  connectionsCount?: number;
 }
 
 export const ProjectsDrawer: React.FC<ProjectsDrawerProps> = ({
@@ -32,6 +34,8 @@ export const ProjectsDrawer: React.FC<ProjectsDrawerProps> = ({
   isOpen,
   onToggle,
   theme,
+  cardsCount = 0,
+  connectionsCount = 0,
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -202,9 +206,19 @@ export const ProjectsDrawer: React.FC<ProjectsDrawerProps> = ({
         </div>
       </div>
 
-      {/* Footer stats */}
-      <div className="pt-3 border-t border-white/5 text-[10px] font-mono text-neutral-400">
-        <span>{workspaces.length} projetos ativos</span>
+      {/* Footer stats: Quantidade de itens no rodapé da barra lateral */}
+      <div className="pt-3 border-t border-white/10 flex flex-col gap-1.5 text-[11px] font-mono select-none">
+        <div className="flex items-center justify-between text-neutral-300">
+          <span className="text-[10px] uppercase tracking-wider text-neutral-400">Total de itens:</span>
+          <span className="px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/30 font-bold text-xs">
+            {cardsCount} {cardsCount === 1 ? 'item' : 'itens'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-[10px] text-neutral-400 pt-0.5 border-t border-white/5">
+          <span>{connectionsCount} {connectionsCount === 1 ? 'ligação' : 'ligações'}</span>
+          <span>•</span>
+          <span>{workspaces.length} {workspaces.length === 1 ? 'projeto' : 'projetos'}</span>
+        </div>
       </div>
     </aside>
   );

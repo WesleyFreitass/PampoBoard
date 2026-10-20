@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   LayoutGrid,
-  BookOpen,
   Settings,
   Trash2,
   History,
@@ -17,8 +16,8 @@ import { sound } from '../../utils/sound';
 import { AuthUser } from '../../services/api';
 
 interface SidebarRailProps {
-  activeTab: 'boards' | 'templates' | 'settings' | 'trash' | 'history';
-  onSelectTab: (tab: 'boards' | 'templates' | 'settings' | 'trash' | 'history') => void;
+  activeTab: 'boards' | 'settings' | 'trash' | 'history';
+  onSelectTab: (tab: 'boards' | 'settings' | 'trash' | 'history') => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   isDrawerOpen: boolean;
@@ -27,6 +26,7 @@ interface SidebarRailProps {
   onOpenAuth: () => void;
   onLogout: () => void;
   onOpenProfile?: () => void;
+  itemsCount?: number;
 }
 
 export const SidebarRail: React.FC<SidebarRailProps> = ({
@@ -40,6 +40,7 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
   onOpenAuth,
   onLogout,
   onOpenProfile,
+  itemsCount = 0,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   return (
@@ -87,28 +88,6 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
           >
             <LayoutGrid className="w-4 h-4 mb-0.5" />
             <span>Quadros</span>
-          </button>
-
-          {/* Modelos (Templates) */}
-          <button
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              onSelectTab('templates');
-            }}
-            title="Modelos & Templates"
-            className={`flex flex-col items-center justify-center w-12 py-2 rounded-xl text-[10px] font-medium transition-all ${
-              activeTab === 'templates'
-                ? theme === 'dark'
-                  ? 'bg-purple-600/25 text-purple-400 border border-purple-500/30'
-                  : 'bg-purple-50 text-purple-600 border border-purple-200'
-                : theme === 'dark'
-                ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                : 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100'
-            }`}
-          >
-            <BookOpen className="w-4 h-4 mb-0.5" />
-            <span>Modelos</span>
           </button>
 
           {/* Configurações */}
@@ -181,8 +160,23 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
         </nav>
       </div>
 
-      {/* Bottom: Theme Switcher & User Profile Avatar */}
+      {/* Bottom: Item Count, Theme Switcher & User Profile Avatar */}
       <div className="flex flex-col items-center gap-3">
+        {/* Item count badge on sidebar footer */}
+        <div
+          title={`${itemsCount} itens no quadro`}
+          className={`flex flex-col items-center justify-center w-11 py-1.5 rounded-xl border text-center transition-all ${
+            theme === 'dark'
+              ? 'bg-[#1e2029] border-[#2e3140] text-blue-400'
+              : 'bg-slate-50 border-slate-200 text-blue-600'
+          }`}
+        >
+          <span className="font-bold text-xs leading-none">{itemsCount}</span>
+          <span className="text-[8px] font-mono text-neutral-400 uppercase tracking-tighter mt-0.5">
+            {itemsCount === 1 ? 'item' : 'itens'}
+          </span>
+        </div>
+
         {/* Theme Toggle Button */}
         <button
           type="button"

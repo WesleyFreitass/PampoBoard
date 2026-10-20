@@ -10,7 +10,7 @@ import { ColumnCard } from '../cards/ColumnCard';
 import { SubBoardCard } from '../cards/SubBoardCard';
 import { ZoneComponent } from './ZoneComponent';
 import { ConnectionLayer } from './ConnectionLayer';
-import { findSnapPort, getPortCoordinates } from '../../utils/bezier';
+import { findSnapPort, findSnapCardOrPort, getOptimalPortBetweenCards, getPortCoordinates } from '../../utils/bezier';
 import { PortPosition, Position, BoardCard } from '../../types/board';
 import { sound } from '../../utils/sound';
 import { CheckCircle2, Image as ImageIcon } from 'lucide-react';
@@ -322,17 +322,19 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       setMarqueeBox(null);
     }
 
-    // If releasing connection line, check if released over a snap port
+    // If releasing connection line, check if released over a card or snap port
     if (connectingFrom && mouseCanvasPos) {
-      const snap = findSnapPort(mouseCanvasPos, cards, connectingFrom.cardId, 36);
+      const snap = findSnapCardOrPort(mouseCanvasPos, cards, connectingFrom.cardId, 45);
       if (snap) {
         addConnection(
           connectingFrom.cardId,
           connectingFrom.port,
           snap.cardId,
           snap.port,
-          '⚡ Dispara'
+          '⚡ Liga'
         );
+        setToastMsg('⚡ Itens conectados com sucesso!');
+        setTimeout(() => setToastMsg(null), 2500);
       }
       setConnectingFrom(null);
     }
@@ -411,6 +413,41 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   // Start connecting from an anchor port
   const handleStartConnect = (cardId: string, port: PortPosition) => {
     setConnectingFrom({ cardId, port });
+  };
+
+  // Connect to target port directly
+  const handleConnectToPort = (targetCardId: string, targetPort: PortPosition) => {
+    if (!connectingFrom || connectingFrom.cardId === targetCardId) return;
+    addConnection(
+      connectingFrom.cardId,
+      connectingFrom.port,
+      targetCardId,
+      targetPort,
+      '⚡ Liga'
+    );
+    setConnectingFrom(null);
+    setToastMsg('⚡ Itens conectados com sucesso!');
+    setTimeout(() => setToastMsg(null), 2500);
+  };
+
+  // Connect to target card with automatic best port calculation
+  const handleConnectToCard = (targetCardId: string) => {
+    if (!connectingFrom || connectingFrom.cardId === targetCardId) return;
+    const fromCard = cards.find((c) => c.id === connectingFrom.cardId);
+    const toCard = cards.find((c) => c.id === targetCardId);
+    if (!fromCard || !toCard) return;
+
+    const { toPort } = getOptimalPortBetweenCards(fromCard, toCard);
+    addConnection(
+      connectingFrom.cardId,
+      connectingFrom.port,
+      targetCardId,
+      toPort,
+      '⚡ Liga'
+    );
+    setConnectingFrom(null);
+    setToastMsg('⚡ Itens conectados com sucesso!');
+    setTimeout(() => setToastMsg(null), 2500);
   };
 
   // Cursor style calculation
@@ -493,6 +530,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               key={card.id}
               card={card}
               isSelected={isSelected}
+              isConnectingActive={!!connectingFrom}
+              isConnectionSource={connectingFrom?.cardId === card.id}
+              onConnectToPort={(port) => handleConnectToPort(card.id, port)}
+              onConnectToCard={() => handleConnectToCard(card.id)}
               onSelect={(e) => {
                 e.stopPropagation();
                 selectCard(card.id, e.shiftKey);
@@ -578,6 +619,24 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           );
         })()}
       </div>
+
+      {/* Floating Active Connection Mode Banner */}
+      {connectingFrom && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#0c1824]/95 border border-cyan-400 text-cyan-200 text-xs shadow-2xl backdrop-blur-md">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+            <span className="font-bold text-white">Modo de Conexão:</span>
+            <span>Clique ou solte sobre o card ou ponto desejado para ligar</span>
+            <button
+              type="button"
+              onClick={() => setConnectingFrom(null)}
+              className="ml-2 px-2.5 py-1 rounded-lg bg-cyan-800/80 hover:bg-cyan-700 text-white font-bold text-[11px] transition-colors cursor-pointer"
+            >
+              Cancelar (ESC)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Toast Notification for Ctrl+V and Actions */}
       {toastMsg && (

@@ -20,6 +20,10 @@ interface CardWrapperProps {
   onDelete: () => void;
   onDuplicate: () => void;
   onStartConnect: (port: PortPosition) => void;
+  onConnectToPort?: (port: PortPosition) => void;
+  onConnectToCard?: () => void;
+  isConnectingActive?: boolean;
+  isConnectionSource?: boolean;
   onDragStart: (e: React.PointerEvent) => void;
   onExpand?: () => void;
   children: React.ReactNode;
@@ -85,6 +89,10 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
   onDelete,
   onDuplicate,
   onStartConnect,
+  onConnectToPort,
+  onConnectToCard,
+  isConnectingActive = false,
+  isConnectionSource = false,
   onDragStart,
   onExpand,
   children,
@@ -101,6 +109,7 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
   };
 
   const colors: CardColor[] = ['default', 'slate', 'lavender', 'emerald', 'amber', 'rose', 'cyan'];
+  const isTargetCard = isConnectingActive && !isConnectionSource;
 
   return (
     <div
@@ -116,32 +125,82 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
         setIsHovered(false);
         setShowColorPicker(false);
       }}
-      onClick={onSelect}
+      onClick={(e) => {
+        if (isTargetCard && onConnectToCard) {
+          e.stopPropagation();
+          onConnectToCard();
+          return;
+        }
+        onSelect(e);
+      }}
+      onPointerUp={(e) => {
+        if (isTargetCard && onConnectToCard) {
+          e.stopPropagation();
+          onConnectToCard();
+        }
+      }}
       onDoubleClick={onExpand}
-      className={`absolute select-none rounded-xl backdrop-blur-xl border transition-shadow duration-150 ${style.bg} ${
-        isSelected
+      className={`absolute select-none rounded-xl backdrop-blur-xl border transition-all duration-150 ${style.bg} ${
+        isTargetCard
+          ? 'cursor-crosshair ring-2 ring-cyan-400/80 shadow-2xl shadow-cyan-500/25 border-cyan-400 hover:ring-4 hover:ring-cyan-300'
+          : isSelected
           ? 'ring-2 ring-indigo-500/90 shadow-2xl shadow-indigo-500/20 border-indigo-400/80'
           : `shadow-lg shadow-black/40 ${style.border}`
       }`}
     >
       {/* 4 Magnetic Anchor Ports */}
-      {portPositions.map(({ port, className }) => (
-        <button
-          key={port}
-          type="button"
-          data-port={port}
-          title={`Conectar ponto: ${port}`}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            onStartConnect(port);
-          }}
-          className={`absolute ${className} z-30 w-4 h-4 rounded-full bg-neutral-900 border-2 border-indigo-400 hover:border-white hover:scale-135 transition-all duration-150 flex items-center justify-center cursor-crosshair ${
-            isHovered || isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 group-hover:bg-white" />
-        </button>
-      ))}
+      {portPositions.map(({ port, className }) => {
+        const isPortTarget = isTargetCard;
+        const isPortSource = isConnectionSource;
+
+        return (
+          <button
+            key={port}
+            type="button"
+            data-port={port}
+            title={
+              isPortTarget
+                ? `Clique para ligar a este ponto (${port})`
+                : `Conectar ponto: ${port}`
+            }
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              if (isPortTarget && onConnectToPort) {
+                onConnectToPort(port);
+              } else {
+                onStartConnect(port);
+              }
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isPortTarget && onConnectToPort) {
+                onConnectToPort(port);
+              }
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              if (isPortTarget && onConnectToPort) {
+                onConnectToPort(port);
+              }
+            }}
+            className={`absolute ${className} z-30 w-5 h-5 rounded-full border-2 transition-all duration-150 flex items-center justify-center cursor-crosshair ${
+              isPortTarget
+                ? 'opacity-100 scale-125 bg-cyan-950 border-cyan-400 ring-2 ring-cyan-400/60 shadow-lg shadow-cyan-400/50 hover:scale-150 hover:bg-cyan-400 hover:border-white animate-pulse'
+                : isPortSource
+                ? 'opacity-100 scale-110 bg-indigo-950 border-indigo-300 ring-2 ring-indigo-400/40'
+                : isHovered || isSelected
+                ? 'opacity-100 scale-100 bg-neutral-900 border-indigo-400 hover:border-white hover:scale-135'
+                : 'opacity-0 scale-75 bg-neutral-900 border-indigo-400'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isPortTarget ? 'bg-cyan-300' : 'bg-indigo-400 group-hover:bg-white'
+              }`}
+            />
+          </button>
+        );
+      })}
 
       {/* Header bar (Drag Handle) */}
       <div
