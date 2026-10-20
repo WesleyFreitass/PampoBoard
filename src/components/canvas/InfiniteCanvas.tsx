@@ -410,10 +410,69 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     window.addEventListener('pointerup', handlePointerUp);
   };
 
+  const startConnectPosRef = useRef<Position | null>(null);
+
   // Start connecting from an anchor port
   const handleStartConnect = (cardId: string, port: PortPosition) => {
     setConnectingFrom({ cardId, port });
+    const fromCard = cards.find((c) => c.id === cardId);
+    if (fromCard) {
+      const portCoords = getPortCoordinates(fromCard, port);
+      setMouseCanvasPos(portCoords);
+      startConnectPosRef.current = portCoords;
+    }
   };
+
+  // Global window listeners while connecting is active
+  useEffect(() => {
+    if (!connectingFrom) return;
+
+    const handleWindowPointerMove = (e: PointerEvent) => {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      setMouseCanvasPos(worldPos);
+    };
+
+    const handleWindowPointerUp = (e: PointerEvent) => {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      const startPos = startConnectPosRef.current;
+
+      const dx = startPos ? worldPos.x - startPos.x : 100;
+      const dy = startPos ? worldPos.y - startPos.y : 100;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 25) {
+        const snap = findSnapCardOrPort(worldPos, cards, connectingFrom.cardId, 60);
+        if (snap) {
+          addConnection(
+            connectingFrom.cardId,
+            connectingFrom.port,
+            snap.cardId,
+            snap.port,
+            '⚡ Liga'
+          );
+          setToastMsg('⚡ Itens conectados com sucesso!');
+          setTimeout(() => setToastMsg(null), 2500);
+        }
+        setConnectingFrom(null);
+      }
+    };
+
+    const handleWindowKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setConnectingFrom(null);
+      }
+    };
+
+    window.addEventListener('pointermove', handleWindowPointerMove);
+    window.addEventListener('pointerup', handleWindowPointerUp);
+    window.addEventListener('keydown', handleWindowKeyDown);
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerUp);
+      window.removeEventListener('keydown', handleWindowKeyDown);
+    };
+  }, [connectingFrom, cards, screenToWorld, addConnection, setConnectingFrom]);
 
   // Connect to target port directly
   const handleConnectToPort = (targetCardId: string, targetPort: PortPosition) => {
@@ -483,6 +542,20 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }}
       />
 
+      {/* Connection Layer (Wires, Arrows, Pulses) rendered across full canvas */}
+      <ConnectionLayer
+        connections={connections}
+        cards={cards}
+        viewport={viewport}
+        selectedConnectionIds={selectedConnectionIds}
+        connectingFrom={connectingFrom}
+        currentMousePos={mouseCanvasPos}
+        activePulseConnectionId={activePulseConnectionId}
+        onSelectConnection={selectConnection}
+        onDeleteConnection={deleteConnection}
+        onUpdateConnection={updateConnection}
+      />
+
       {/* World Container transformed by Pan & Zoom */}
       <div
         style={{
@@ -491,19 +564,6 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }}
         className="absolute inset-0 w-0 h-0 pointer-events-auto"
       >
-        {/* Connection Layer (Wires, Arrows, Pulses) */}
-        <ConnectionLayer
-          connections={connections}
-          cards={cards}
-          selectedConnectionIds={selectedConnectionIds}
-          connectingFrom={connectingFrom}
-          currentMousePos={mouseCanvasPos}
-          activePulseConnectionId={activePulseConnectionId}
-          onSelectConnection={selectConnection}
-          onDeleteConnection={deleteConnection}
-          onUpdateConnection={updateConnection}
-        />
-
         {/* Zones (Delimited Frames) */}
         {zones.map((zone) => (
           <ZoneComponent
