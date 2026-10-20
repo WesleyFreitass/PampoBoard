@@ -7,14 +7,12 @@ interface AuthScreenProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onSuccess: (user: AuthUser, defaultWsId?: string) => void;
-  onContinueAsGuest: () => void;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   theme,
   onToggleTheme,
   onSuccess,
-  onContinueAsGuest,
 }) => {
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
@@ -45,13 +43,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setEmail('wesley@pampo.tech');
-    setPassword('PampoSecret2026');
-    setTab('login');
-    sound.playClick();
   };
 
   return (
@@ -256,28 +247,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 )}
               </button>
             </form>
-
-            {/* Quick Demo Fill Pill */}
-            <div className="mt-5 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={fillDemoCredentials}
-                className="text-[11px] text-emerald-400/90 hover:text-emerald-300 underline underline-offset-4 transition-colors"
-              >
-                Preencher com credenciais de demonstração (wesley@pampo.tech)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick();
-                  onContinueAsGuest();
-                }}
-                className="text-[11px] text-neutral-400 hover:text-neutral-200 transition-colors mt-1"
-              >
-                Continuar sem conta (Modo Convidado Offline) →
-              </button>
-            </div>
           </div>
         </div>
       </main>

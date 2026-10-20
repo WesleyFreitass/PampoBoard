@@ -218,20 +218,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
           </button>
         </form>
-
-        {/* Guest fallback option */}
-        <div className="mt-5 pt-4 border-t border-neutral-500/10 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              onClose();
-            }}
-            className="text-[11px] text-neutral-400 hover:text-emerald-400 transition-colors"
-          >
-            Continuar sem login (Modo Convidado Offline) →
-          </button>
-        </div>
       </div>
     </div>
   );

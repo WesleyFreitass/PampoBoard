@@ -28,7 +28,6 @@ import confetti from 'canvas-confetti';
 export function App() {
   const store = useBoardStore();
 
-  const [isGuestMode, setIsGuestMode] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'boards' | 'templates' | 'settings' | 'trash' | 'history'>('boards');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -53,8 +52,8 @@ export function App() {
 
   const sidebarOffset = isDrawerOpen ? 300 : 80;
 
-  // If user is not authenticated and has not explicitly chosen guest mode, show Auth Screen
-  if (!store.isAuthenticated && !isGuestMode) {
+  // If user is not authenticated, strictly show Auth Screen
+  if (!store.isAuthenticated) {
     return (
       <AuthScreen
         theme={store.theme}
@@ -62,7 +61,6 @@ export function App() {
         onSuccess={(user, defaultWsId) => {
           store.login(user, defaultWsId);
         }}
-        onContinueAsGuest={() => setIsGuestMode(true)}
       />
     );
   }
@@ -83,10 +81,7 @@ export function App() {
         onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
         user={store.user}
         onOpenAuth={() => setIsAuthModalOpen(true)}
-        onLogout={() => {
-          store.logout();
-          setIsGuestMode(false);
-        }}
+        onLogout={store.logout}
       />
 
       {/* 220px Dynamic Sidebar Drawer according to activeSidebarTab */}
