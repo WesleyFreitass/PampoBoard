@@ -16,6 +16,7 @@ import { MediaExpandModal } from './components/modals/MediaExpandModal';
 import { SubBoardModal } from './components/modals/SubBoardModal';
 import { AuthModal } from './components/modals/AuthModal';
 import { ShareModal } from './components/modals/ShareModal';
+import { AuthScreen } from './components/auth/AuthScreen';
 import { BoardCard } from './types/board';
 import { ChevronsRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -23,6 +24,7 @@ import confetti from 'canvas-confetti';
 export function App() {
   const store = useBoardStore();
 
+  const [isGuestMode, setIsGuestMode] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'boards' | 'templates' | 'settings' | 'trash' | 'history'>('boards');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -47,6 +49,20 @@ export function App() {
 
   const sidebarOffset = isDrawerOpen ? 300 : 80;
 
+  // If user is not authenticated and has not explicitly chosen guest mode, show Auth Screen
+  if (!store.isAuthenticated && !isGuestMode) {
+    return (
+      <AuthScreen
+        theme={store.theme}
+        onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
+        onSuccess={(user, defaultWsId) => {
+          store.login(user, defaultWsId);
+        }}
+        onContinueAsGuest={() => setIsGuestMode(true)}
+      />
+    );
+  }
+
   return (
     <div
       className={`relative w-screen h-screen overflow-hidden ${
@@ -63,7 +79,10 @@ export function App() {
         onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
         user={store.user}
         onOpenAuth={() => setIsAuthModalOpen(true)}
-        onLogout={store.logout}
+        onLogout={() => {
+          store.logout();
+          setIsGuestMode(false);
+        }}
       />
 
       {/* 220px Collapsible Projects Drawer */}
