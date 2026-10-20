@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "3100:80"
+      - "3110:80"
     environment:
       - NODE_ENV=production
     logging:
