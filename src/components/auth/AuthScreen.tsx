@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, AuthUser } from '../../services/api';
-import { Mail, Lock, User, ArrowRight, Sun, Moon, Sparkles, Layers, Box, Cpu, RefreshCw, X } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sun, Moon, Sparkles, Layers, Box, Cpu, X } from 'lucide-react';
 import { GithubIcon, GoogleIcon } from '../common/SocialIcons';
 import { sound } from '../../utils/sound';
 
@@ -22,14 +22,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [showGithubPrompt, setShowGithubPrompt] = useState(false);
-  const [githubUsernameInput, setGithubUsernameInput] = useState('');
-  const [isGithubLoading, setIsGithubLoading] = useState(false);
-
-  const [showGooglePrompt, setShowGooglePrompt] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('');
-  const [googleNameInput, setGoogleNameInput] = useState('');
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [oauthConfigModalProvider, setOauthConfigModalProvider] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,51 +68,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       setErrorMessage(err.message || 'Erro ao realizar login. Verifique seus dados.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGithubLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!githubUsernameInput.trim()) {
-      setErrorMessage('Digite seu usuário do GitHub');
-      return;
-    }
-    setErrorMessage(null);
-    setIsGithubLoading(true);
-    try {
-      const res = await api.auth.loginWithGithub({
-        githubUsername: githubUsernameInput.trim(),
-      });
-      sound.playConnect();
-      onSuccess(res.user, res.defaultWorkspaceId);
-    } catch (err: any) {
-      sound.playDelete();
-      setErrorMessage(err.message || 'Erro ao conectar via GitHub');
-    } finally {
-      setIsGithubLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleEmailInput.trim()) {
-      setErrorMessage('Digite seu e-mail do Google');
-      return;
-    }
-    setErrorMessage(null);
-    setIsGoogleLoading(true);
-    try {
-      const res = await api.auth.loginWithGoogle({
-        email: googleEmailInput.trim(),
-        name: googleNameInput.trim() || undefined,
-      });
-      sound.playConnect();
-      onSuccess(res.user, res.defaultWorkspaceId);
-    } catch (err: any) {
-      sound.playDelete();
-      setErrorMessage(err.message || 'Erro ao conectar via Google');
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -368,91 +315,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <span>Google</span>
               </button>
             </div>
-
-            <div className="flex items-center justify-center text-[11px] text-neutral-400 mb-2">
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setShowGithubPrompt((prev) => !prev);
-                  setShowGooglePrompt(false);
-                }}
-                className="text-neutral-500 hover:text-purple-400 underline transition-colors"
-              >
-                {showGithubPrompt ? 'Ocultar login rápido' : 'Login rápido via @usuário do GitHub'}
-              </button>
-            </div>
-
-            {/* GitHub Quick Fallback Prompt Form */}
-            {showGithubPrompt && (
-              <form onSubmit={handleGithubLogin} className="p-3 rounded-xl border border-purple-500/30 bg-purple-500/5 space-y-2 mb-2 animate-fade-in">
-                <div className="text-[11px] font-semibold text-purple-300">
-                  Entre com seu @usuário do GitHub (busca sua foto automaticamente):
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={githubUsernameInput}
-                    onChange={(e) => setGithubUsernameInput(e.target.value)}
-                    placeholder="Ex: WesleyFreitass"
-                    autoFocus
-                    className={`flex-1 px-3 py-1.5 rounded-lg text-xs border outline-none font-mono ${
-                      theme === 'dark'
-                        ? 'bg-neutral-900 border-neutral-700 text-white'
-                        : 'bg-white border-neutral-300 text-neutral-900'
-                    }`}
-                  />
-                  <button
-                    type="submit"
-                    disabled={isGithubLoading}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-colors flex items-center gap-1.5"
-                  >
-                    {isGithubLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>Entrar</span>}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Google Prompt Form */}
-            {showGooglePrompt && (
-              <form onSubmit={handleGoogleLogin} className="p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/5 space-y-2 mb-2 animate-fade-in">
-                <div className="text-[11px] font-semibold text-cyan-300">
-                  Informe seu e-mail Google:
-                </div>
-                <div className="space-y-1.5">
-                  <input
-                    type="email"
-                    value={googleEmailInput}
-                    onChange={(e) => setGoogleEmailInput(e.target.value)}
-                    placeholder="seu.email@gmail.com"
-                    autoFocus
-                    className={`w-full px-3 py-1.5 rounded-lg text-xs border outline-none font-mono ${
-                      theme === 'dark'
-                        ? 'bg-neutral-900 border-neutral-700 text-white'
-                        : 'bg-white border-neutral-300 text-neutral-900'
-                    }`}
-                  />
-                  <input
-                    type="text"
-                    value={googleNameInput}
-                    onChange={(e) => setGoogleNameInput(e.target.value)}
-                    placeholder="Seu nome (opcional)"
-                    className={`w-full px-3 py-1.5 rounded-lg text-xs border outline-none ${
-                      theme === 'dark'
-                        ? 'bg-neutral-900 border-neutral-700 text-white'
-                        : 'bg-white border-neutral-300 text-neutral-900'
-                    }`}
-                  />
-                  <button
-                    type="submit"
-                    disabled={isGoogleLoading}
-                    className="w-full py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    {isGoogleLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>Acessar via Google</span>}
-                  </button>
-                </div>
-              </form>
-            )}
           </div>
         </div>
       </main>
@@ -537,17 +399,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 </div>
               )}
 
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] text-neutral-400">Opção imediata:</span>
+              <div className="pt-2 border-t border-white/10 flex items-center justify-end">
                 <button
                   type="button"
-                  onClick={() => {
-                    setOauthConfigModalProvider(null);
-                    setShowGithubPrompt(true);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-colors"
+                  onClick={() => setOauthConfigModalProvider(null)}
+                  className="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs transition-colors cursor-pointer"
                 >
-                  Entrar rápido pelo @usuário
+                  Fechar
                 </button>
               </div>
             </div>
