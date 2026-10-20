@@ -26,8 +26,10 @@ services:
       - PORT=3000
       - MONGODB_URI=mongodb://mongodb:27017/pampoboard
       - JWT_SECRET=pampoboard_super_secret_jwt_key_2026_x88
-      - GITHUB_CLIENT_ID=Ov23liQEY3WOfw3xlkAY
-      - GITHUB_CLIENT_SECRET=b5515be2b3037d2b8eb0f04113001739d28c1195
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     depends_on:
       - mongodb
     volumes:

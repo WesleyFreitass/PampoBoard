@@ -216,9 +216,7 @@ router.get('/config', (req, res) => {
 // Official GitHub OAuth Redirect Flow
 router.get('/github', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const host = req.headers['x-forwarded-host'] || req.get('host');
-  const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+  const redirectUri = `${getBaseOrigin(req)}/api/auth/github/callback`;
 
   if (!clientId) {
     return res.redirect('/?error=oauth_missing_config&provider=github');
@@ -238,9 +236,7 @@ router.get('/github/callback', async (req, res) => {
 
     const clientId = process.env.GITHUB_CLIENT_ID;
     const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+    const redirectUri = `${getBaseOrigin(req)}/api/auth/github/callback`;
 
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -335,9 +331,7 @@ router.get('/github/callback', async (req, res) => {
 // Official Google OAuth Redirect Flow
 router.get('/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const host = req.headers['x-forwarded-host'] || req.get('host');
-  const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+  const redirectUri = `${getBaseOrigin(req)}/api/auth/google/callback`;
 
   if (!clientId) {
     return res.redirect('/?error=oauth_missing_config&provider=google');
@@ -357,9 +351,7 @@ router.get('/google/callback', async (req, res) => {
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    const redirectUri = `${getBaseOrigin(req)}/api/auth/google/callback`;
 
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',

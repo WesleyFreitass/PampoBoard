@@ -14,11 +14,17 @@ jobs:
     steps:
       - name: Executar Deploy na VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
+          envs: GH_CLIENT_ID,GH_CLIENT_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
             set -e
             echo "🚀 Iniciando Deploy do PampoBoard na VPS..."
@@ -36,7 +42,14 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # 3. Reconstrói e sobe os containers Docker com resiliência
+            # 3. Configura o arquivo .env com as credenciais oficiais dos GitHub Secrets
+            echo "🔐 Escrevendo credenciais seguras no .env..."
+            echo "GITHUB_CLIENT_ID=$GH_CLIENT_ID" > /root/pampoboard/.env
+            echo "GITHUB_CLIENT_SECRET=$GH_CLIENT_SECRET" >> /root/pampoboard/.env
+            echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> /root/pampoboard/.env
+            echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> /root/pampoboard/.env
+
+            # 4. Reconstrói e sobe os containers Docker com resiliência
             echo "🐳 Construindo e iniciando containers Docker na porta 3110..."
             docker compose down --remove-orphans || true
             docker compose up -d --build --remove-orphans
