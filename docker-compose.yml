@@ -1,0 +1,16 @@
+services:
+  pampoboard:
+    container_name: pampoboard
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3100:80"
+    environment:
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

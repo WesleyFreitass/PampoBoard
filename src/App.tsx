@@ -1,0 +1,151 @@
+import React, { useState } from 'react';
+import { useBoardStore } from './stores/useBoardStore';
+import { InfiniteCanvas } from './components/canvas/InfiniteCanvas';
+import { FloatingDock } from './components/navigation/FloatingDock';
+import { TopHeader } from './components/navigation/TopHeader';
+import { SidebarRail } from './components/navigation/SidebarRail';
+import { ProjectsDrawer } from './components/navigation/ProjectsDrawer';
+import { SelectionBar } from './components/navigation/SelectionBar';
+import { MiniMap } from './components/navigation/MiniMap';
+import { KanbanView } from './components/views/KanbanView';
+import { GraphView } from './components/views/GraphView';
+import { CommandPalette } from './components/modals/CommandPalette';
+import { SummaryModal } from './components/modals/SummaryModal';
+import { ExportImportModal } from './components/modals/ExportImportModal';
+import { MediaExpandModal } from './components/modals/MediaExpandModal';
+import { SubBoardModal } from './components/modals/SubBoardModal';
+import { BoardCard } from './types/board';
+import { ChevronsRight } from 'lucide-react';
+import confetti from 'canvas-confetti';
+
+export function App() {
+  const store = useBoardStore();
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'boards' | 'templates' | 'settings' | 'trash' | 'history'>('boards');
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [isExportImportOpen, setIsExportImportOpen] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [selectedSubBoardCard, setSelectedSubBoardCard] = useState<BoardCard | null>(null);
+
+  const handleOpenExecutiveSummary = () => {
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.2 },
+    });
+    setIsSummaryModalOpen(true);
+  };
+
+  const expandedCard = store.cards.find((c) => c.id === expandedCardId) || null;
+
+  const sidebarOffset = isDrawerOpen ? 300 : 80;
+
+  return (
+    <div
+      className={`relative w-screen h-screen overflow-hidden ${
+        store.theme === 'dark' ? 'dark text-neutral-100 bg-[#0c0d12]' : 'text-neutral-900 bg-[#f8fafc]'
+      }`}
+    >
+      {/* 64px Leftmost Icon Rail */}
+      <SidebarRail
+        activeTab={activeSidebarTab}
+        onSelectTab={setActiveSidebarTab}
+        theme={store.theme}
+        onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
+        isDrawerOpen={isDrawerOpen}
+        onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
+      />
+
+      {/* 220px Collapsible Projects Drawer */}
+      <ProjectsDrawer
+        workspaces={store.workspaces}
+        activeWorkspaceId={store.activeWorkspaceId}
+        onSelectWorkspace={store.switchWorkspace}
+        onCreateWorkspace={store.createWorkspace}
+        onDeleteWorkspace={store.deleteWorkspace}
+        isOpen={isDrawerOpen}
+        onToggle={() => setIsDrawerOpen(false)}
+        theme={store.theme}
+      />
+
+      {/* Re-expand pill when drawer is collapsed */}
+      {!isDrawerOpen && (
+        <button
+          type="button"
+          onClick={() => setIsDrawerOpen(true)}
+          title="Expandir lista de Projetos (>>)"
+          className="fixed top-4 left-20 z-30 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-900/90 text-neutral-300 hover:text-white border border-neutral-800 shadow-xl backdrop-blur-xl text-xs font-mono transition-transform hover:scale-105"
+        >
+          <ChevronsRight className="w-4 h-4 text-emerald-400" />
+          <span>Projetos</span>
+        </button>
+      )}
+
+      {/* Top Navigation & Brand Header */}
+      <TopHeader
+        store={store}
+        leftOffset={sidebarOffset}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenExportImport={() => setIsExportImportOpen(true)}
+      />
+
+      {/* Main Infinite Canvas Engine */}
+      <InfiniteCanvas
+        store={store}
+        onOpenExpandMedia={(id) => setExpandedCardId(id)}
+        onOpenSubBoard={(card) => store.navigateToBoard(card.id, card.title)}
+      />
+
+      {/* Assistant Selection Action Bar (Appears when 2+ cards selected) */}
+      <SelectionBar
+        store={store}
+        onOpenExecutiveSummary={handleOpenExecutiveSummary}
+      />
+
+      {/* Floating Bottom Toolbar Dock */}
+      <FloatingDock store={store} />
+
+      {/* Canvas Radar Minimap */}
+      <MiniMap store={store} />
+
+      {/* View Mode Overlays */}
+      {store.viewMode === 'kanban' && <KanbanView store={store} />}
+      {store.viewMode === 'graph' && <GraphView store={store} />}
+
+      {/* Modals */}
+      <CommandPalette
+        store={store}
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
+
+      <SummaryModal
+        store={store}
+        isOpen={isSummaryModalOpen}
+        onClose={() => setIsSummaryModalOpen(false)}
+      />
+
+      <ExportImportModal
+        store={store}
+        isOpen={isExportImportOpen}
+        onClose={() => setIsExportImportOpen(false)}
+      />
+
+      <MediaExpandModal
+        card={expandedCard}
+        isOpen={expandedCardId !== null}
+        onClose={() => setExpandedCardId(null)}
+      />
+
+      <SubBoardModal
+        card={selectedSubBoardCard}
+        isOpen={selectedSubBoardCard !== null}
+        onClose={() => setSelectedSubBoardCard(null)}
+      />
+    </div>
+  );
+}
+
+export default App;

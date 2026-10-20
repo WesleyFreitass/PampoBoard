@@ -1,0 +1,43 @@
+name: Deploy PampoBoard to Production VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Executar Deploy na VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            echo "🚀 Iniciando Deploy do PampoBoard na VPS..."
+
+            # 1. Verifica se o diretório do projeto existe; se não, clona o repositório
+            if [ ! -d "/root/pampoboard" ]; then
+              echo "📥 Clonando repositório inicial WesleyFreitass/PampoBoard..."
+              git clone https://github.com/WesleyFreitass/PampoBoard.git /root/pampoboard
+            fi
+
+            # 2. Navega e atualiza o código para a versão mais recente da branch main
+            cd /root/pampoboard
+            echo "🔄 Atualizando código da branch main..."
+            git clean -fd
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 3. Reconstrói e sobe o container Docker
+            echo "🐳 Construindo e iniciando container Docker na porta 3100..."
+            docker compose up -d --build
+
+            echo "✅ Deploy do PampoBoard concluído com sucesso!"
+            docker ps --filter "name=pampoboard"

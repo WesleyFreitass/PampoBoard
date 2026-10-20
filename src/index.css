@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --canvas-bg: #111216;
+  --sidebar-rail-bg: #15161b;
+  --sidebar-drawer-bg: #1a1b22;
+  --sidebar-border: #262833;
+  --card-bg: #1e2029;
+  --card-border: #2e3140;
+  --card-header-text: #f3f4f6;
+  --card-code-bg: #13141a;
+  --grid-dot: rgba(255, 255, 255, 0.08);
+}
+
+.light {
+  --canvas-bg: #f5f6fa;
+  --sidebar-rail-bg: #ffffff;
+  --sidebar-drawer-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --card-header-text: #0f172a;
+  --card-code-bg: #1e293b;
+  --grid-dot: rgba(0, 0, 0, 0.09);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Minimalist Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.4);
+}
+
+/* Pulsing wire animations */
+@keyframes wirePulse {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-wire-pulse {
+  animation: wirePulse 1.2s linear infinite;
+}
