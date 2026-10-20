@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -35,9 +36,10 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # 3. Reconstrói e sobe o container Docker
-            echo "🐳 Construindo e iniciando container Docker na porta 3110..."
-            docker compose up -d --build
+            # 3. Reconstrói e sobe os containers Docker com resiliência
+            echo "🐳 Construindo e iniciando containers Docker na porta 3110..."
+            docker compose down --remove-orphans || true
+            docker compose up -d --build --remove-orphans
 
             echo "✅ Deploy do PampoBoard concluído com sucesso!"
-            docker ps --filter "name=pampoboard"
+            docker ps --filter "name=pampo"
