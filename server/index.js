@@ -51,7 +51,7 @@ app.get('/api/health', (req, res) => {
 const DIST_DIR = path.join(process.cwd(), 'dist');
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
-  app.get('*', (req, res) => {
+  app.use((req, res) => {
     res.sendFile(path.join(DIST_DIR, 'index.html'));
   });
 }
