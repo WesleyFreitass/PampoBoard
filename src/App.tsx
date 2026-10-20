@@ -14,6 +14,8 @@ import { SummaryModal } from './components/modals/SummaryModal';
 import { ExportImportModal } from './components/modals/ExportImportModal';
 import { MediaExpandModal } from './components/modals/MediaExpandModal';
 import { SubBoardModal } from './components/modals/SubBoardModal';
+import { AuthModal } from './components/modals/AuthModal';
+import { ShareModal } from './components/modals/ShareModal';
 import { BoardCard } from './types/board';
 import { ChevronsRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -26,6 +28,8 @@ export function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [selectedSubBoardCard, setSelectedSubBoardCard] = useState<BoardCard | null>(null);
 
@@ -39,6 +43,7 @@ export function App() {
   };
 
   const expandedCard = store.cards.find((c) => c.id === expandedCardId) || null;
+  const currentWorkspace = store.workspaces.find((w) => w.id === store.activeWorkspaceId) || store.workspaces[0];
 
   const sidebarOffset = isDrawerOpen ? 300 : 80;
 
@@ -56,6 +61,9 @@ export function App() {
         onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
         isDrawerOpen={isDrawerOpen}
         onToggleDrawer={() => setIsDrawerOpen((prev) => !prev)}
+        user={store.user}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onLogout={store.logout}
       />
 
       {/* 220px Collapsible Projects Drawer */}
@@ -89,6 +97,8 @@ export function App() {
         leftOffset={sidebarOffset}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenExportImport={() => setIsExportImportOpen(true)}
+        onOpenShare={() => setIsShareModalOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
       {/* Main Infinite Canvas Engine */}
@@ -143,6 +153,26 @@ export function App() {
         card={selectedSubBoardCard}
         isOpen={selectedSubBoardCard !== null}
         onClose={() => setSelectedSubBoardCard(null)}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(user, defaultWsId) => {
+          store.login(user, defaultWsId);
+        }}
+        theme={store.theme}
+      />
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        workspaceId={store.activeWorkspaceId}
+        workspaceTitle={currentWorkspace?.title || 'Quadro Pampo'}
+        isPublic={currentWorkspace?.isPublic}
+        shareToken={currentWorkspace?.shareToken}
+        onTogglePublic={(isPub) => store.toggleWorkspacePublic(store.activeWorkspaceId, isPub)}
+        theme={store.theme}
       />
     </div>
   );

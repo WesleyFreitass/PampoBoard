@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutGrid,
   BookOpen,
@@ -8,8 +8,12 @@ import {
   Moon,
   Sun,
   Palette,
+  LogIn,
+  LogOut,
+  User as UserIcon,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
+import { AuthUser } from '../../services/api';
 
 interface SidebarRailProps {
   activeTab: 'boards' | 'templates' | 'settings' | 'trash' | 'history';
@@ -18,6 +22,9 @@ interface SidebarRailProps {
   onToggleTheme: () => void;
   isDrawerOpen: boolean;
   onToggleDrawer: () => void;
+  user: AuthUser | null;
+  onOpenAuth: () => void;
+  onLogout: () => void;
 }
 
 export const SidebarRail: React.FC<SidebarRailProps> = ({
@@ -27,7 +34,11 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
   onToggleTheme,
   isDrawerOpen,
   onToggleDrawer,
+  user,
+  onOpenAuth,
+  onLogout,
 }) => {
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   return (
     <aside
       className={`fixed top-0 left-0 bottom-0 z-40 w-16 flex flex-col items-center justify-between py-3.5 border-r transition-colors select-none ${
@@ -188,16 +199,73 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
           )}
         </button>
 
-        {/* Profile Avatar "P" */}
-        <div
-          title="Wesley (Usuário Ativo)"
-          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shadow-md ${
-            theme === 'dark'
-              ? 'bg-neutral-800 text-neutral-200 border border-neutral-700'
-              : 'bg-neutral-200 text-neutral-800 border border-neutral-300'
-          }`}
-        >
-          <span>P</span>
+        {/* Profile Avatar / Login Button */}
+        <div className="relative">
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                setShowProfileMenu((prev) => !prev);
+              }}
+              title={`${user.name} (${user.email}) — Clique para opções`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shadow-md transition-transform hover:scale-105 overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-black border border-emerald-400/40'
+                  : 'bg-emerald-500 text-white border border-emerald-600'
+              }`}
+            >
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <span>{user.name.charAt(0).toUpperCase()}</span>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onOpenAuth();
+              }}
+              title="Fazer Login / Criar Conta no PampoBoard"
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs cursor-pointer shadow-md bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 transition-all hover:scale-105"
+            >
+              <LogIn className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Profile Dropdown Menu */}
+          {showProfileMenu && user && (
+            <div
+              className={`absolute bottom-0 left-12 z-50 w-52 rounded-xl p-3 shadow-2xl border backdrop-blur-xl animate-fade-in ${
+                theme === 'dark'
+                  ? 'bg-[#15161b] border-[#262833] text-neutral-200'
+                  : 'bg-white border-neutral-200 text-neutral-800'
+              }`}
+            >
+              <div className="pb-2 mb-2 border-b border-white/10">
+                <div className="text-xs font-bold truncate">{user.name}</div>
+                <div className="text-[10px] text-neutral-400 truncate">{user.email}</div>
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                  <span>●</span> Sincronizado no MongoDB
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setShowProfileMenu(false);
+                  onLogout();
+                }}
+                className="w-full py-1.5 px-2 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Desconectar / Sair</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </aside>

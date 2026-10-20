@@ -191,6 +191,9 @@ export interface BoardWorkspace {
   description?: string;
   color?: string;
   icon?: string;
+  isDefault?: boolean;
+  isPublic?: boolean;
+  shareToken?: string;
   updatedAt: number;
 }
 

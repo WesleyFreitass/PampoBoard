@@ -1,4 +1,18 @@
 services:
+  mongodb:
+    image: mongo:7-jammy
+    container_name: pampoboard-mongodb
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=pampoboard
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   pampoboard:
     container_name: pampoboard
     build:
@@ -6,11 +20,22 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "3110:80"
+      - "3110:3000"
     environment:
       - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/pampoboard
+      - JWT_SECRET=pampoboard_super_secret_jwt_key_2026_x88
+    depends_on:
+      - mongodb
+    volumes:
+      - uploads-data:/app/uploads
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  mongo-data:
+  uploads-data:

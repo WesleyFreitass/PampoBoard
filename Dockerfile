@@ -7,22 +7,30 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy source and build
+# Copy source and build frontend
 COPY . .
 RUN npm run build
 
-# Production Stage with Nginx Alpine
-FROM nginx:alpine
+# Production Stage with Node.js
+FROM node:20-alpine AS runner
 
-# Remove default nginx config
-RUN rm -rf /etc/nginx/conf.d/*
+WORKDIR /app
 
-# Copy custom nginx SPA configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# Copy compiled assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-EXPOSE 80
+# Copy compiled frontend from builder
+COPY --from=builder /app/dist ./dist
 
-CMD ["nginx", "-g", "daemon off;"]
+# Copy backend server code
+COPY server ./server
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+EXPOSE 3000
+
+CMD ["node", "server/index.js"]

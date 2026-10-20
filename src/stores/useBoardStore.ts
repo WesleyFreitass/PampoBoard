@@ -13,10 +13,15 @@ import {
 } from '../types/board';
 import { initialCards, initialConnections, initialZones, initialWorkspaces } from '../utils/sampleData';
 import { sound } from '../utils/sound';
+import { api, AuthUser } from '../services/api';
 
 const STORAGE_KEY = 'pampo_board_mvp_v2';
 
 export function useBoardStore() {
+  const [user, setUser] = useState<AuthUser | null>(() => api.auth.getCurrentUser());
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [lastCloudSyncedAt, setLastCloudSyncedAt] = useState<number | null>(null);
+
   const [workspaces, setWorkspaces] = useState<BoardWorkspace[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY + '_workspaces');
@@ -137,8 +142,74 @@ export function useBoardStore() {
     }
   }, [cards, connections, zones, workspaces, activeWorkspaceId]);
 
+  // Cloud Synchronization Debounce Effect
+  const syncTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!user || !activeWorkspaceId) return;
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsCloudSyncing(true);
+        const currentWsCards = cards.filter((c) => !c.rootBoardId || c.rootBoardId === activeWorkspaceId);
+        const currentWsConns = connections.filter((c) => !c.rootBoardId || c.rootBoardId === activeWorkspaceId);
+        const currentWsZones = zones.filter((z) => !z.rootBoardId || z.rootBoardId === activeWorkspaceId);
+
+        await api.boards.sync(activeWorkspaceId, {
+          cards: currentWsCards,
+          connections: currentWsConns,
+          zones: currentWsZones,
+        });
+        setLastCloudSyncedAt(Date.now());
+      } catch (err) {
+        console.warn('Sincronização em nuvem offline fallback:', err);
+      } finally {
+        setIsCloudSyncing(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [cards, connections, zones, user, activeWorkspaceId]);
+
+  // Auth actions
+  const login = useCallback(async (loggedInUser: AuthUser, defaultWsId?: string) => {
+    setUser(loggedInUser);
+    sound.playConnect();
+    try {
+      setIsCloudSyncing(true);
+      const remoteWorkspaces = await api.workspaces.list();
+      if (remoteWorkspaces && remoteWorkspaces.length > 0) {
+        setWorkspaces(remoteWorkspaces);
+        const targetWsId = defaultWsId || remoteWorkspaces[0].id;
+        setActiveWorkspaceId(targetWsId);
+        const remoteData = await api.boards.get(targetWsId);
+        if (remoteData && remoteData.cards) {
+          setCards(remoteData.cards);
+          setConnections(remoteData.connections || []);
+          setZones(remoteData.zones || []);
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar dados do usuário:', err);
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    api.auth.logout();
+    setUser(null);
+    sound.playClick();
+  }, []);
+
   // Workspace management
-  const switchWorkspace = useCallback((workspaceId: string) => {
+  const switchWorkspace = useCallback(async (workspaceId: string) => {
     setActiveWorkspaceId(workspaceId);
     setActiveBoardId('root');
     const ws = workspaces.find((w) => w.id === workspaceId);
@@ -149,11 +220,45 @@ export function useBoardStore() {
     setSelectedZoneIds([]);
     setViewport({ x: 0, y: 0, zoom: 1 });
     sound.playClick();
-  }, [workspaces]);
 
-  const createWorkspace = useCallback((title: string, color: string = '#3b82f6') => {
+    if (user) {
+      try {
+        setIsCloudSyncing(true);
+        const remoteData = await api.boards.get(workspaceId);
+        if (remoteData && remoteData.cards) {
+          setCards((prev) => [
+            ...prev.filter((c) => c.rootBoardId !== workspaceId),
+            ...remoteData.cards,
+          ]);
+          setConnections((prev) => [
+            ...prev.filter((c) => c.rootBoardId !== workspaceId),
+            ...(remoteData.connections || []),
+          ]);
+          setZones((prev) => [
+            ...prev.filter((z) => z.rootBoardId !== workspaceId),
+            ...(remoteData.zones || []),
+          ]);
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar dados remotos do quadro:', err);
+      } finally {
+        setIsCloudSyncing(false);
+      }
+    }
+  }, [workspaces, user]);
+
+  const createWorkspace = useCallback(async (title: string, color: string = '#3b82f6') => {
+    let newId = `ws-${Date.now()}`;
+    if (user) {
+      try {
+        const created = await api.workspaces.create(title, '', color);
+        newId = created.id;
+      } catch (e) {
+        console.warn('Fallback offline ao criar workspace:', e);
+      }
+    }
     const newWs: BoardWorkspace = {
-      id: `ws-${Date.now()}`,
+      id: newId,
       title,
       description: 'Novo workspace do Pampo Board',
       color,
@@ -161,19 +266,16 @@ export function useBoardStore() {
       updatedAt: Date.now(),
     };
     setWorkspaces((prev) => [...prev, newWs]);
-    setActiveWorkspaceId(newWs.id);
-    setActiveBoardId('root');
-    setBoardBreadcrumbs([{ id: 'root', title }]);
-    setSelectedCardIds([]);
-    setSelectedConnectionIds([]);
-    setSelectedZoneIds([]);
-    setViewport({ x: 0, y: 0, zoom: 1 });
+    switchWorkspace(newWs.id);
     sound.playConnect();
     return newWs.id;
-  }, []);
+  }, [user, switchWorkspace]);
 
-  const deleteWorkspace = useCallback((workspaceId: string) => {
+  const deleteWorkspace = useCallback(async (workspaceId: string) => {
     if (workspaces.length <= 1) return;
+    if (user) {
+      api.workspaces.delete(workspaceId).catch((e) => console.warn('Erro ao deletar workspace:', e));
+    }
     setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceId));
     setCards((prev) => prev.filter((c) => c.rootBoardId !== workspaceId));
     setConnections((prev) => prev.filter((c) => c.rootBoardId !== workspaceId));
@@ -188,7 +290,27 @@ export function useBoardStore() {
       }
     }
     sound.playDelete();
-  }, [workspaces, activeWorkspaceId]);
+  }, [workspaces, activeWorkspaceId, user]);
+
+  const toggleWorkspacePublic = useCallback(async (workspaceId: string, isPublic: boolean) => {
+    setWorkspaces((prev) =>
+      prev.map((w) => (w.id === workspaceId ? { ...w, isPublic } : w))
+    );
+    if (user) {
+      try {
+        const updated = await api.workspaces.update(workspaceId, { isPublic });
+        setWorkspaces((prev) =>
+          prev.map((w) =>
+            w.id === workspaceId
+              ? { ...w, isPublic: updated.isPublic, shareToken: updated.shareToken }
+              : w
+          )
+        );
+      } catch (e) {
+        console.warn('Erro ao atualizar compartilhamento:', e);
+      }
+    }
+  }, [user]);
 
   // Board Drill-Down Navigation
   const navigateToBoard = useCallback((boardId: string, title: string) => {
@@ -453,9 +575,32 @@ export function useBoardStore() {
 
       setCards((prev) => [...prev, newCard]);
       setSelectedCardIds([newId]);
+
+      // Cloud upload in background if available
+      if (user || api.auth.hasToken()) {
+        api.upload.base64(dataUrl).then((res) => {
+          setCards((prev) =>
+            prev.map((c) =>
+              c.id === newId
+                ? {
+                    ...c,
+                    mediaData: {
+                      title: c.mediaData?.title || c.title,
+                      mediaType: 'image' as const,
+                      ...(c.mediaData || {}),
+                      imageUrl: res.url,
+                      caption: 'Sincronizado na nuvem (Storage)',
+                    },
+                  }
+                : c
+            )
+          );
+        }).catch((err) => console.warn('Upload de print fallback local:', err));
+      }
+
       return newCard;
     },
-    [viewport, pushHistory, activeBoardId, activeWorkspaceId]
+    [viewport, pushHistory, activeBoardId, activeWorkspaceId, user]
   );
 
   const updateCard = useCallback(
@@ -1056,6 +1201,14 @@ export function useBoardStore() {
   });
 
   return {
+    // Auth & Cloud
+    user,
+    isAuthenticated: !!user,
+    isCloudSyncing,
+    lastCloudSyncedAt,
+    login,
+    logout,
+    toggleWorkspacePublic,
     // Workspaces
     workspaces,
     activeWorkspaceId,

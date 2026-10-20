@@ -19,6 +19,10 @@ import {
   ChevronRight,
   ArrowLeft,
   Folder,
+  Share2,
+  Cloud,
+  CloudUpload,
+  LogIn,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -26,6 +30,8 @@ interface TopHeaderProps {
   store: BoardStore;
   onOpenCommandPalette: () => void;
   onOpenExportImport: () => void;
+  onOpenShare?: () => void;
+  onOpenAuth?: () => void;
   leftOffset?: number;
 }
 
@@ -33,6 +39,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   store,
   onOpenCommandPalette,
   onOpenExportImport,
+  onOpenShare,
+  onOpenAuth,
   leftOffset = 248,
 }) => {
   const {
@@ -246,6 +254,53 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           >
             <Maximize className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* Cloud Sync Status & Share Button */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl">
+          {store.user ? (
+            <div
+              title={store.isCloudSyncing ? 'Sincronizando com MongoDB...' : 'Quadro salvo na nuvem com sucesso'}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 rounded-lg border border-emerald-500/20"
+            >
+              {store.isCloudSyncing ? (
+                <CloudUpload className="w-3.5 h-3.5 animate-pulse text-cyan-400" />
+              ) : (
+                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+              <span className="hidden sm:inline">
+                {store.isCloudSyncing ? 'Salvando...' : 'Nuvem OK'}
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                if (onOpenAuth) onOpenAuth();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 rounded-lg border border-emerald-500/30 transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Entrar / Salvar</span>
+            </button>
+          )}
+
+          {/* Share Button */}
+          {onOpenShare && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onOpenShare();
+              }}
+              title="Compartilhar link somente-leitura deste quadro"
+              className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Compartilhar</span>
+            </button>
+          )}
         </div>
 
         {/* Board Options & Theme */}
