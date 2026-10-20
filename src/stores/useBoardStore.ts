@@ -817,7 +817,7 @@ export function useBoardStore() {
       fromPort: PortPosition,
       toCardId: string,
       toPort: PortPosition,
-      label: string = '⚡ Conectado'
+      label: string = ''
     ) => {
       if (fromCardId === toCardId) return; // Prevent self-loop if desired
       pushHistory();
@@ -1144,7 +1144,7 @@ export function useBoardStore() {
     const padding = 50;
     const newZone: Zone = {
       id: `zone-${Date.now()}`,
-      title: '🎯 Agrupamento Estratégico',
+      title: 'Agrupamento Estratégico',
       description: `${selectedCards.length} cartões organizados`,
       x: Math.round(minX - padding),
       y: Math.round(minY - padding),

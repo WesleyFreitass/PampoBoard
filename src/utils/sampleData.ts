@@ -6,7 +6,7 @@ export const initialWorkspaces: BoardWorkspace[] = [
     title: 'Jogo Tower Defense',
     description: 'Bancada principal do jogo com notas, mecânicas, mídias e conexões',
     color: '#3b82f6',
-    icon: '🎮',
+    icon: '',
     updatedAt: Date.now(),
   },
   {
@@ -14,7 +14,7 @@ export const initialWorkspaces: BoardWorkspace[] = [
     title: 'Backlog',
     description: 'Tarefas pendentes, ideias brutas e sprints futuras',
     color: '#8b5cf6',
-    icon: '📋',
+    icon: '',
     updatedAt: Date.now() - 3600000,
   },
   {
@@ -22,7 +22,7 @@ export const initialWorkspaces: BoardWorkspace[] = [
     title: 'Roadmap',
     description: 'Planejamento de lançamento e marcos principais',
     color: '#06b6d4',
-    icon: '🗺️',
+    icon: '',
     updatedAt: Date.now() - 7200000,
   },
   {
@@ -30,7 +30,7 @@ export const initialWorkspaces: BoardWorkspace[] = [
     title: 'Arquivados',
     description: 'Projetos e referências arquivadas',
     color: '#64748b',
-    icon: '📦',
+    icon: '',
     updatedAt: Date.now() - 14400000,
   },
 ];
@@ -38,7 +38,7 @@ export const initialWorkspaces: BoardWorkspace[] = [
 export const initialZones: Zone[] = [
   {
     id: 'zone-tower-defense',
-    title: '🎯 Núcleo do Projeto — Jogo Tower Defense',
+    title: 'Núcleo do Projeto — Jogo Tower Defense',
     description: 'Fluxo interativo de desenvolvimento e assets',
     x: 40,
     y: 40,

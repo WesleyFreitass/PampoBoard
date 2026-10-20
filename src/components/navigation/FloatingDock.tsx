@@ -29,7 +29,6 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
     setIsSnappingEnabled,
     addCard,
     addZone,
-    lastSavedTimestamp,
   } = store;
 
   const [soundEnabled, setSoundEnabled] = React.useState(sound.enabled);
@@ -39,12 +38,6 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
     setSoundEnabled(sound.enabled);
     sound.playClick();
   };
-
-  const timeFormatted = new Date(lastSavedTimestamp).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
@@ -199,15 +192,6 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
         </div>
-      </div>
-
-      {/* Real-time Permanent Autosave Pill Indicator */}
-      <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/80 backdrop-blur-md border border-neutral-800 text-[11px] font-mono text-neutral-400 shadow-lg">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-        </span>
-        <span>Salvo: {timeFormatted}</span>
       </div>
     </div>
   );

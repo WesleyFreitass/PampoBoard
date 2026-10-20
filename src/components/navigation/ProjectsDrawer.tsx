@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { BoardWorkspace } from '../../types/board';
 import {
   ChevronsLeft,
-  LayoutGrid,
-  ListTodo,
-  Map,
-  Archive,
   Plus,
   Trash2,
-  FolderOpen,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -47,23 +42,6 @@ export const ProjectsDrawer: React.FC<ProjectsDrawerProps> = ({
     onCreateWorkspace(newTitle.trim());
     setNewTitle('');
     setIsCreating(false);
-  };
-
-  const getWorkspaceIcon = (title: string) => {
-    const t = title.toLowerCase();
-    if (t.includes('tower') || t.includes('jogo') || t.includes('game')) {
-      return <LayoutGrid className="w-4 h-4 text-blue-500" />;
-    }
-    if (t.includes('backlog')) {
-      return <ListTodo className="w-4 h-4 text-indigo-400" />;
-    }
-    if (t.includes('roadmap')) {
-      return <Map className="w-4 h-4 text-cyan-400" />;
-    }
-    if (t.includes('arquivo') || t.includes('archive')) {
-      return <Archive className="w-4 h-4 text-neutral-400" />;
-    }
-    return <FolderOpen className="w-4 h-4 text-emerald-400" />;
   };
 
   return (
@@ -138,7 +116,6 @@ export const ProjectsDrawer: React.FC<ProjectsDrawerProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    {getWorkspaceIcon(ws.title)}
                     <span className="truncate">{ws.title}</span>
                   </div>
 

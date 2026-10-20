@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BoardCard, PortPosition, CardColor } from '../../types/board';
 import {
   MoreHorizontal,
@@ -100,6 +100,32 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const heightRef = useRef(card.height);
+  heightRef.current = card.height;
+
+  // Dynamically synchronize the rendered DOM height with card.height
+  // This guarantees connection ports and bezier wires stick flush to cards with zero gap
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const el = wrapperRef.current;
+
+    const syncHeight = () => {
+      const measured = Math.round(el.offsetHeight);
+      if (measured > 0 && Math.abs(measured - heightRef.current) > 2) {
+        heightRef.current = measured;
+        onUpdate({ height: measured });
+      }
+    };
+
+    syncHeight();
+
+    const observer = new ResizeObserver(() => {
+      syncHeight();
+    });
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [card.id, onUpdate]);
 
   const style = colorStyles[card.color] || colorStyles.default;
 
@@ -207,18 +233,7 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
         onPointerDown={handlePointerDownHeader}
         className="px-3.5 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing border-b border-white/5"
       >
-        <div className="flex items-center gap-2 overflow-hidden pr-2">
-          <span
-            className={`w-2 h-2 rounded-full shrink-0 ${
-              card.type === 'live'
-                ? 'bg-amber-400 shadow-xs shadow-amber-400 animate-pulse'
-                : card.type === 'media'
-                ? 'bg-emerald-400'
-                : card.type === 'link'
-                ? 'bg-cyan-400'
-                : 'bg-indigo-400'
-            }`}
-          />
+        <div className="flex items-center gap-2 overflow-hidden pr-2 flex-1">
           <input
             type="text"
             value={card.title}
@@ -332,9 +347,9 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
             onPointerDown={(e) => e.stopPropagation()}
             className="bg-transparent text-[11px] font-medium text-neutral-400 hover:text-neutral-200 border-none focus:outline-none cursor-pointer"
           >
-            <option value="backlog" className="bg-neutral-900 text-neutral-300">📋 Backlog</option>
-            <option value="in_progress" className="bg-neutral-900 text-neutral-300">⚡ Em Andamento</option>
-            <option value="done" className="bg-neutral-900 text-neutral-300">✅ Concluído</option>
+            <option value="backlog" className="bg-neutral-900 text-neutral-300">Backlog</option>
+            <option value="in_progress" className="bg-neutral-900 text-neutral-300">Em Andamento</option>
+            <option value="done" className="bg-neutral-900 text-neutral-300">Concluído</option>
           </select>
         </div>
 

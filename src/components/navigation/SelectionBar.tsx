@@ -57,7 +57,7 @@ export const SelectionBar: React.FC<SelectionBarProps> = ({
               if (c1 && c2) {
                 const fromPort = c1.x <= c2.x ? 'right' : 'left';
                 const toPort = c1.x <= c2.x ? 'left' : 'right';
-                store.addConnection(fromId, fromPort, toId, toPort, '⚡ Liga');
+                store.addConnection(fromId, fromPort, toId, toPort, '');
               }
             }
           }}

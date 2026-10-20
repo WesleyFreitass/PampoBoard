@@ -64,28 +64,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       style={{ left: `${leftOffset}px` }}
       className="fixed top-3.5 right-4 z-20 flex items-center justify-between pointer-events-none transition-[left] duration-200"
     >
-      {/* Brand & Stats Section */}
+      {/* Brand & Sub-Board Section */}
       <div className="flex items-center gap-3 pointer-events-auto">
-        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-neutral-900/90 dark:bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl shadow-black/40">
-          {/* Logo Mark */}
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 via-purple-600 to-amber-500 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <span className="font-black text-xs text-white tracking-tighter">PB</span>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-xs font-bold tracking-tight text-white m-0">Pampo Board</h1>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] font-mono text-neutral-400">
-              <span>{store.currentCards.length} cards</span>
-              <span>•</span>
-              <span className="text-amber-400 font-semibold">{liveCardsCount} vivos</span>
-              <span>•</span>
-              <span>{store.currentConnections.length} fios</span>
-            </div>
-          </div>
-        </div>
-
         {/* Nested Sub-Board Breadcrumbs Trail */}
         {store.boardBreadcrumbs.length > 1 && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-950/80 backdrop-blur-xl border border-emerald-500/50 shadow-xl text-xs">

@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BoardCard, Connection, PortPosition, Position, ViewportTransform } from '../../types/board';
 import { computeBezierPath, getPortCoordinates } from '../../utils/bezier';
-import { Trash2, Edit2, Check } from 'lucide-react';
-import { sound } from '../../utils/sound';
 
 interface ConnectionLayerProps {
   connections: Connection[];
@@ -26,25 +24,9 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
   currentMousePos,
   activePulseConnectionId,
   onSelectConnection,
-  onDeleteConnection,
-  onUpdateConnection,
 }) => {
-  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
-  const [labelText, setLabelText] = useState('');
-
   const cardMap = new Map<string, BoardCard>();
   cards.forEach((c) => cardMap.set(c.id, c));
-
-  const startEditLabel = (conn: Connection) => {
-    setEditingLabelId(conn.id);
-    setLabelText(conn.label || '');
-  };
-
-  const saveLabel = (connId: string) => {
-    onUpdateConnection(connId, { label: labelText });
-    setEditingLabelId(null);
-    sound.playClick();
-  };
 
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-20">
@@ -111,7 +93,7 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
           const p1 = getPortCoordinates(fromCard, conn.fromPort);
           const p2 = getPortCoordinates(toCard, conn.toPort);
 
-          const { path, midPoint } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
+          const { path } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
           const isSelected = selectedConnectionIds.includes(conn.id);
           const isPulsing = activePulseConnectionId === conn.id;
 
@@ -166,80 +148,6 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
                   <animateMotion path={path} dur="0.9s" repeatCount="1" />
                 </circle>
               )}
-
-              {/* Central Editable Label / Intent Badge */}
-              <foreignObject
-                x={midPoint.x - 70}
-                y={midPoint.y - 16}
-                width="140"
-                height="36"
-                className="overflow-visible pointer-events-auto"
-              >
-                <div className="flex items-center justify-center">
-                  {editingLabelId === conn.id ? (
-                    <div
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 bg-neutral-900 border border-indigo-500 rounded-full px-2 py-0.5 shadow-lg"
-                    >
-                      <input
-                        type="text"
-                        autoFocus
-                        value={labelText}
-                        onChange={(e) => setLabelText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveLabel(conn.id);
-                          if (e.key === 'Escape') setEditingLabelId(null);
-                        }}
-                        className="bg-transparent text-[11px] font-mono text-white outline-none w-20"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => saveLabel(conn.id)}
-                        className="text-emerald-400 hover:text-emerald-300"
-                      >
-                        <Check className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEditLabel(conn);
-                      }}
-                      style={{
-                        backgroundColor:
-                          conn.label?.toLowerCase().includes('ciano') || conn.color === '#06b6d4'
-                            ? '#06b6d4'
-                            : conn.label?.toLowerCase().includes('magenta') || conn.color === '#d946ef'
-                            ? '#d946ef'
-                            : conn.label?.toLowerCase().includes('daowcana') || conn.color === '#10b981'
-                            ? '#10b981'
-                            : conn.color || '#6366f1',
-                      }}
-                      className={`group/label flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-sans font-semibold text-white shadow-md hover:scale-105 transition-all ${
-                        isSelected
-                          ? 'ring-2 ring-white scale-110'
-                          : isPulsing
-                          ? 'ring-2 ring-amber-400 scale-110 shadow-lg shadow-amber-400/50'
-                          : ''
-                      }`}
-                    >
-                      <span>{conn.label || 'Conexão'}</span>
-                      <button
-                        type="button"
-                        title="Excluir conexão"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteConnection(conn.id);
-                        }}
-                        className="opacity-0 group-hover/label:opacity-100 text-white/80 hover:text-white ml-0.5 transition-opacity"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </foreignObject>
             </g>
           );
         })}

@@ -331,9 +331,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           connectingFrom.port,
           snap.cardId,
           snap.port,
-          '⚡ Liga'
+          ''
         );
-        setToastMsg('⚡ Itens conectados com sucesso!');
+        setToastMsg('Itens conectados com sucesso!');
         setTimeout(() => setToastMsg(null), 2500);
       }
       setConnectingFrom(null);
@@ -448,9 +448,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             connectingFrom.port,
             snap.cardId,
             snap.port,
-            '⚡ Liga'
+            ''
           );
-          setToastMsg('⚡ Itens conectados com sucesso!');
+          setToastMsg('Itens conectados com sucesso!');
           setTimeout(() => setToastMsg(null), 2500);
         }
         setConnectingFrom(null);
@@ -482,10 +482,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       connectingFrom.port,
       targetCardId,
       targetPort,
-      '⚡ Liga'
+      ''
     );
     setConnectingFrom(null);
-    setToastMsg('⚡ Itens conectados com sucesso!');
+    setToastMsg('Itens conectados com sucesso!');
     setTimeout(() => setToastMsg(null), 2500);
   };
 
@@ -502,10 +502,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       connectingFrom.port,
       targetCardId,
       toPort,
-      '⚡ Liga'
+      ''
     );
     setConnectingFrom(null);
-    setToastMsg('⚡ Itens conectados com sucesso!');
+    setToastMsg('Itens conectados com sucesso!');
     setTimeout(() => setToastMsg(null), 2500);
   };
 
