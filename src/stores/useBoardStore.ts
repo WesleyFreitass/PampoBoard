@@ -208,6 +208,16 @@ export function useBoardStore() {
     sound.playClick();
   }, []);
 
+  const updateUserProfile = useCallback(
+    async (data: { name?: string; avatar?: string }) => {
+      const res = await api.auth.updateProfile(data);
+      setUser(res.user);
+      sound.playConnect();
+      return res.user;
+    },
+    []
+  );
+
   // Workspace management
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     setActiveWorkspaceId(workspaceId);
@@ -648,6 +658,34 @@ export function useBoardStore() {
     (id: string) => {
       pushHistory();
       sound.playDelete();
+      // Soft-delete: mark as archived so it appears in TrashDrawer
+      setCards((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: 'archived' } : c))
+      );
+      // Remove connections linked to this card
+      setConnections((prev) =>
+        prev.filter((conn) => conn.fromCardId !== id && conn.toCardId !== id)
+      );
+      setSelectedCardIds((prev) => prev.filter((selId) => selId !== id));
+    },
+    [pushHistory]
+  );
+
+  const restoreCard = useCallback(
+    (id: string) => {
+      pushHistory();
+      sound.playConnect();
+      setCards((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: 'in_progress' } : c))
+      );
+    },
+    [pushHistory]
+  );
+
+  const permanentlyDeleteCard = useCallback(
+    (id: string) => {
+      pushHistory();
+      sound.playDelete();
       setCards((prev) => prev.filter((c) => c.id !== id));
       setConnections((prev) =>
         prev.filter((conn) => conn.fromCardId !== id && conn.toCardId !== id)
@@ -656,6 +694,12 @@ export function useBoardStore() {
     },
     [pushHistory]
   );
+
+  const emptyTrash = useCallback(() => {
+    pushHistory();
+    sound.playDelete();
+    setCards((prev) => prev.filter((c) => c.status !== 'archived'));
+  }, [pushHistory]);
 
   const duplicateCard = useCallback(
     (id: string) => {
@@ -1154,20 +1198,408 @@ export function useBoardStore() {
   const resetToDefault = useCallback(() => {
     pushHistory();
     sound.playClick();
-    setCards(initialCards);
-    setConnections(initialConnections);
-    setZones(initialZones);
+    const targetWsId = activeWorkspaceId || 'ws-tower-defense';
+    const reboundCards = initialCards.map((c) => ({
+      ...c,
+      rootBoardId: targetWsId,
+      parentBoardId: 'root',
+      status: 'in_progress' as const,
+    }));
+    const reboundConns = initialConnections.map((cn) => ({
+      ...cn,
+      rootBoardId: targetWsId,
+      parentBoardId: 'root',
+    }));
+    const reboundZones = initialZones.map((z) => ({
+      ...z,
+      rootBoardId: targetWsId,
+      parentBoardId: 'root',
+    }));
+    setCards(reboundCards);
+    setConnections(reboundConns);
+    setZones(reboundZones);
     setActiveBoardId('root');
-    setBoardBreadcrumbs([{ id: 'root', title: 'Pampo Board Principal' }]);
+    const currentWs = workspaces.find((w) => w.id === activeWorkspaceId);
+    setBoardBreadcrumbs([{ id: 'root', title: currentWs ? currentWs.title : 'Pampo Board Principal' }]);
     setViewport({ x: 0, y: 0, zoom: 1 });
-  }, [pushHistory]);
+  }, [pushHistory, activeWorkspaceId, workspaces]);
+
+  const applyTemplate = useCallback(
+    (templateType: 'gamedev' | 'roadmap' | 'data' | 'moodboard') => {
+      pushHistory();
+      sound.playConnect();
+      const targetWsId = activeWorkspaceId || 'ws-tower-defense';
+      const targetParentId = activeBoardId || 'root';
+      const ts = Date.now();
+
+      // Find an offset based on existing cards so we don't overlap directly if board already has cards
+      const existingInBoard = cards.filter(
+        (c) =>
+          (!c.rootBoardId || c.rootBoardId === targetWsId) &&
+          (c.parentBoardId || 'root') === targetParentId &&
+          c.status !== 'archived'
+      );
+      let baseOffsetX = 80;
+      let baseOffsetY = 80;
+      if (existingInBoard.length > 0) {
+        const maxX = Math.max(...existingInBoard.map((c) => c.x + c.width));
+        baseOffsetX = maxX + 80;
+      }
+
+      let newCards: BoardCard[] = [];
+      let newConns: Connection[] = [];
+
+      if (templateType === 'gamedev') {
+        const idTurret = `card-3d-${ts}`;
+        const idAudio = `card-audio-${ts}`;
+        const idNote = `card-gdd-${ts}`;
+        newCards = [
+          {
+            id: idTurret,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'media',
+            title: 'Torreta Defensiva (Three.js)',
+            x: baseOffsetX,
+            y: baseOffsetY,
+            width: 360,
+            height: 400,
+            zIndex: 10,
+            color: 'default',
+            status: 'in_progress',
+            mediaData: {
+              title: 'Torreta Defensiva 3D',
+              mediaType: '3d',
+              modelGeometry: 'dodecahedron',
+              wireframe: false,
+              modelColor: '#818cf8',
+              autoRotate: true,
+            },
+          },
+          {
+            id: idAudio,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'media',
+            title: 'Trilha Sonora & SFX de Combate',
+            x: baseOffsetX + 400,
+            y: baseOffsetY,
+            width: 360,
+            height: 250,
+            zIndex: 11,
+            color: 'lavender',
+            status: 'in_progress',
+            mediaData: {
+              title: 'Trilha Sonora & SFX',
+              mediaType: 'audio',
+              audioPlaying: false,
+              audioDuration: 165,
+              audioProgress: 0,
+              caption: 'Combat Synthwave 128 BPM',
+            },
+          },
+          {
+            id: idNote,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'note',
+            title: 'GDD — Mecânicas & Balanço',
+            x: baseOffsetX + 400,
+            y: baseOffsetY + 280,
+            width: 360,
+            height: 330,
+            zIndex: 12,
+            color: 'amber',
+            status: 'in_progress',
+            noteData: {
+              title: 'GDD — Mecânicas & Balanço',
+              body: '## Sistema de Combate\\n- Alcance da torreta: 15 unidades\\n- Dano por projétil: 25 HP\\n- Cadência: 1.2 tiros/seg',
+              checklist: [
+                { id: `chk-1-${ts}`, text: 'Shaders de iluminação Three.js', completed: true },
+                { id: `chk-2-${ts}`, text: 'Sistema de detecção de inimigos', completed: false },
+                { id: `chk-3-${ts}`, text: 'Áudio dinâmico por proximidade', completed: false },
+              ],
+              tags: ['#gamedev', '#3d', '#mechanics'],
+            },
+          },
+        ];
+        newConns = [
+          {
+            id: `conn-gd-${ts}`,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            fromCardId: idTurret,
+            fromPort: 'right',
+            toCardId: idNote,
+            toPort: 'left',
+            label: 'Assets 3D',
+            style: 'pulse',
+            color: '#6366f1',
+          },
+        ];
+      } else if (templateType === 'roadmap') {
+        const idCol = `card-col-${ts}`;
+        const idTbl = `card-tbl-${ts}`;
+        const idNote = `card-note-${ts}`;
+        newCards = [
+          {
+            id: idCol,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'column',
+            title: 'Sprint Backlog & Tarefas',
+            x: baseOffsetX,
+            y: baseOffsetY,
+            width: 360,
+            height: 480,
+            zIndex: 10,
+            color: 'lavender',
+            status: 'in_progress',
+            columnData: {
+              title: 'Sprint Backlog & Tarefas',
+              items: [
+                { id: `ci-1-${ts}`, text: 'Refatoração da arquitetura WebSocket', done: true, tag: 'Backend' },
+                { id: `ci-2-${ts}`, text: 'Design responsivo mobile', done: false, tag: 'UI/UX' },
+                { id: `ci-3-${ts}`, text: 'Testes de estresse de carga', done: false, tag: 'QA' },
+                { id: `ci-4-${ts}`, text: 'Otimização WebGL Three.js', done: false, tag: '3D' },
+              ],
+            },
+          },
+          {
+            id: idTbl,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'table',
+            title: 'Cronograma e Entregas',
+            x: baseOffsetX + 400,
+            y: baseOffsetY,
+            width: 560,
+            height: 420,
+            zIndex: 11,
+            color: 'default',
+            status: 'in_progress',
+            tableData: {
+              title: 'Cronograma e Entregas',
+              columns: [
+                { id: 'c1', header: 'Entregável', type: 'text', width: 180 },
+                { id: 'c2', header: 'Responsável', type: 'text', width: 140 },
+                { id: 'c3', header: 'Status', type: 'status', width: 120 },
+                { id: 'c4', header: 'Prioridade', type: 'number', width: 90 },
+              ],
+              rows: [
+                { id: `r1-${ts}`, cells: { c1: 'Autenticação & Sessões', c2: 'Time Core', c3: 'Concluído', c4: 1 } },
+                { id: `r2-${ts}`, cells: { c1: 'Templates de Quadros', c2: 'Wesley', c3: 'Em Andamento', c4: 2 } },
+                { id: `r3-${ts}`, cells: { c1: 'Deploy Automático CI/CD', c2: 'Wesley', c3: 'Concluído', c4: 1 } },
+              ],
+            },
+          },
+          {
+            id: idNote,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'note',
+            title: 'Metas da Sprint',
+            x: baseOffsetX + 400,
+            y: baseOffsetY + 450,
+            width: 360,
+            height: 220,
+            zIndex: 12,
+            color: 'emerald',
+            status: 'in_progress',
+            noteData: {
+              title: 'Metas da Sprint',
+              body: 'Entregar todos os itens com qualidade, performance e zero bugs visuais.',
+              tags: ['#sprint', '#roadmap'],
+            },
+          },
+        ];
+        newConns = [
+          {
+            id: `conn-sp-${ts}`,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            fromCardId: idCol,
+            fromPort: 'right',
+            toCardId: idTbl,
+            toPort: 'left',
+            label: 'Backlog Sync',
+            style: 'solid',
+            color: '#a855f7',
+          },
+        ];
+      } else if (templateType === 'data') {
+        const idLive = `card-live-${ts}`;
+        const idTbl = `card-tbl-${ts}`;
+        newCards = [
+          {
+            id: idLive,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'live',
+            title: 'Monitor de Serviços & Uptime',
+            x: baseOffsetX,
+            y: baseOffsetY,
+            width: 340,
+            height: 380,
+            zIndex: 10,
+            color: 'cyan',
+            status: 'in_progress',
+            liveData: {
+              title: 'Monitor de Serviços & Uptime',
+              mode: 'counter',
+              value: 99.9,
+              isActive: true,
+              status: 'active',
+              unit: '%',
+              actionLog: ['API OK (14ms)', 'MongoDB OK (4ms)'],
+            },
+          },
+          {
+            id: idTbl,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'table',
+            title: 'Métricas de Performance de Nós',
+            x: baseOffsetX + 380,
+            y: baseOffsetY,
+            width: 560,
+            height: 380,
+            zIndex: 11,
+            color: 'default',
+            status: 'in_progress',
+            tableData: {
+              title: 'Métricas de Performance de Nós',
+              columns: [
+                { id: 'c1', header: 'Microsserviço', type: 'text', width: 180 },
+                { id: 'c2', header: 'Latência', type: 'text', width: 120 },
+                { id: 'c3', header: 'Memória (MB)', type: 'number', width: 120 },
+                { id: 'c4', header: 'Status', type: 'status', width: 110 },
+              ],
+              rows: [
+                { id: `r1-${ts}`, cells: { c1: 'Backend Node API', c2: '14ms', c3: 184, c4: 'Estável' } },
+                { id: `r2-${ts}`, cells: { c1: 'MongoDB 7 Jammy', c2: '4ms', c3: 412, c4: 'Estável' } },
+                { id: `r3-${ts}`, cells: { c1: 'Nginx SSL Gateway', c2: '2ms', c3: 64, c4: 'Estável' } },
+              ],
+            },
+          },
+        ];
+        newConns = [
+          {
+            id: `conn-live-${ts}`,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            fromCardId: idLive,
+            fromPort: 'right',
+            toCardId: idTbl,
+            toPort: 'left',
+            label: 'Telemetria',
+            style: 'pulse',
+            color: '#06b6d4',
+          },
+        ];
+      } else if (templateType === 'moodboard') {
+        const idImg1 = `card-img1-${ts}`;
+        const idImg2 = `card-img2-${ts}`;
+        const idNote = `card-note-${ts}`;
+        newCards = [
+          {
+            id: idImg1,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'media',
+            title: 'Direção de Arte & Glassmorphism',
+            x: baseOffsetX,
+            y: baseOffsetY,
+            width: 380,
+            height: 340,
+            zIndex: 10,
+            color: 'default',
+            status: 'in_progress',
+            mediaData: {
+              title: 'Direção de Arte & Glassmorphism',
+              mediaType: 'image',
+              imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+              caption: 'Gradientes etéreos e vidro fosco',
+            },
+          },
+          {
+            id: idImg2,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'media',
+            title: 'Paleta Cibernética',
+            x: baseOffsetX + 410,
+            y: baseOffsetY,
+            width: 380,
+            height: 340,
+            zIndex: 11,
+            color: 'default',
+            status: 'in_progress',
+            mediaData: {
+              title: 'Paleta Cibernética',
+              mediaType: 'image',
+              imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80',
+              caption: 'Neons azuis e roxos cyberpunk',
+            },
+          },
+          {
+            id: idNote,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            type: 'note',
+            title: 'Paleta e Identidade Visual',
+            x: baseOffsetX,
+            y: baseOffsetY + 370,
+            width: 440,
+            height: 260,
+            zIndex: 12,
+            color: 'amber',
+            status: 'in_progress',
+            noteData: {
+              title: 'Paleta e Identidade Visual',
+              body: '## Identidade Visual\\n- Dark `#0c0d12`\\n- Violeta `#6366f1`\\n- Ciano `#06b6d4` & Âmbar `#f59e0b`\\n- Glassmorphism com blur 20px',
+              tags: ['#moodboard', '#design'],
+            },
+          },
+        ];
+        newConns = [
+          {
+            id: `conn-mb-${ts}`,
+            rootBoardId: targetWsId,
+            parentBoardId: targetParentId,
+            fromCardId: idImg1,
+            fromPort: 'right',
+            toCardId: idImg2,
+            toPort: 'left',
+            label: 'Referências',
+            style: 'dashed',
+            color: '#f59e0b',
+          },
+        ];
+      }
+
+      setCards((prev) => [...prev, ...newCards]);
+      if (newConns.length > 0) {
+        setConnections((prev) => [...prev, ...newConns]);
+      }
+      setSelectedCardIds(newCards.map((c) => c.id));
+      if (newCards.length > 0) {
+        setViewport({
+          x: -newCards[0].x * 0.9 + 150,
+          y: -newCards[0].y * 0.9 + 120,
+          zoom: 0.9,
+        });
+      }
+    },
+    [pushHistory, activeWorkspaceId, activeBoardId, cards]
+  );
 
   // Current active board items (filtered by activeWorkspaceId & activeBoardId)
   const currentCards = cards
     .filter((c) => {
       const matchesWs = !c.rootBoardId || c.rootBoardId === activeWorkspaceId;
       const matchesBoard = (c.parentBoardId || 'root') === activeBoardId;
-      return matchesWs && matchesBoard;
+      return matchesWs && matchesBoard && c.status !== 'archived';
     })
     .map((c) => {
       if (c.type === 'board') {
@@ -1208,6 +1640,7 @@ export function useBoardStore() {
     lastCloudSyncedAt,
     login,
     logout,
+    updateUserProfile,
     toggleWorkspacePublic,
     // Workspaces
     workspaces,
@@ -1257,6 +1690,9 @@ export function useBoardStore() {
     updateCardPosition,
     moveCards,
     deleteCard,
+    restoreCard,
+    permanentlyDeleteCard,
+    emptyTrash,
     duplicateCard,
     bringToFront,
     // Zones
@@ -1292,6 +1728,7 @@ export function useBoardStore() {
     exportBoard,
     importBoard,
     resetToDefault,
+    applyTemplate,
   };
 }
 

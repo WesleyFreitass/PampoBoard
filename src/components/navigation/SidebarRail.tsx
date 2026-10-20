@@ -11,6 +11,7 @@ import {
   LogIn,
   LogOut,
   User as UserIcon,
+  Camera,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { AuthUser } from '../../services/api';
@@ -25,6 +26,7 @@ interface SidebarRailProps {
   user: AuthUser | null;
   onOpenAuth: () => void;
   onLogout: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const SidebarRail: React.FC<SidebarRailProps> = ({
@@ -37,6 +39,7 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
   user,
   onOpenAuth,
   onLogout,
+  onOpenProfile,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   return (
@@ -249,10 +252,22 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
               <div className="pb-2 mb-2 border-b border-white/10">
                 <div className="text-xs font-bold truncate">{user.name}</div>
                 <div className="text-[10px] text-neutral-400 truncate">{user.email}</div>
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
-                  <span>●</span> Sincronizado no MongoDB
-                </div>
               </div>
+
+              {onOpenProfile && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setShowProfileMenu(false);
+                    onOpenProfile();
+                  }}
+                  className="w-full py-1.5 px-2 mb-1 rounded-lg text-xs text-indigo-400 hover:bg-indigo-500/10 flex items-center gap-2 transition-colors"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Editar Perfil & Foto</span>
+                </button>
+              )}
 
               <button
                 type="button"

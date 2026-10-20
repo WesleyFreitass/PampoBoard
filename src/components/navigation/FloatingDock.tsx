@@ -14,7 +14,6 @@ import {
   Table as TableIcon,
   Columns3,
   FolderOpen,
-  ClipboardPaste,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -209,12 +208,6 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
         </span>
         <span>Salvo: {timeFormatted}</span>
-      </div>
-
-      {/* Ctrl+V Screenshot Pill */}
-      <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-950/70 backdrop-blur-md border border-indigo-500/40 text-[11px] font-mono text-indigo-300 shadow-lg">
-        <ClipboardPaste className="w-3.5 h-3.5 text-indigo-400" />
-        <span>Cole prints com <kbd className="bg-indigo-900/80 px-1 py-0.2 rounded border border-indigo-400/30 text-white">Ctrl+V</kbd></span>
       </div>
     </div>
   );

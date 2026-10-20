@@ -65,6 +65,35 @@ export const api = {
       return request<{ user: AuthUser }>('/auth/me');
     },
 
+    async updateProfile(data: { name?: string; avatar?: string }): Promise<{ user: AuthUser }> {
+      const res = await request<{ user: AuthUser }>('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      localStorage.setItem('pampo_auth_user', JSON.stringify(res.user));
+      return res;
+    },
+
+    async loginWithGithub(data: { githubUsername?: string; code?: string }): Promise<AuthResponse> {
+      const res = await request<AuthResponse>('/auth/github', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      localStorage.setItem('pampo_auth_token', res.token);
+      localStorage.setItem('pampo_auth_user', JSON.stringify(res.user));
+      return res;
+    },
+
+    async loginWithGoogle(data: { email: string; name?: string; picture?: string }): Promise<AuthResponse> {
+      const res = await request<AuthResponse>('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      localStorage.setItem('pampo_auth_token', res.token);
+      localStorage.setItem('pampo_auth_user', JSON.stringify(res.user));
+      return res;
+    },
+
     logout() {
       localStorage.removeItem('pampo_auth_token');
       localStorage.removeItem('pampo_auth_user');

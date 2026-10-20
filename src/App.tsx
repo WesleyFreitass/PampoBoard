@@ -20,6 +20,7 @@ import { MediaExpandModal } from './components/modals/MediaExpandModal';
 import { SubBoardModal } from './components/modals/SubBoardModal';
 import { AuthModal } from './components/modals/AuthModal';
 import { ShareModal } from './components/modals/ShareModal';
+import { ProfileModal } from './components/modals/ProfileModal';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { BoardCard } from './types/board';
 import { ChevronsRight } from 'lucide-react';
@@ -35,6 +36,7 @@ export function App() {
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [selectedSubBoardCard, setSelectedSubBoardCard] = useState<BoardCard | null>(null);
 
@@ -82,6 +84,7 @@ export function App() {
         user={store.user}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogout={store.logout}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
 
       {/* 220px Dynamic Sidebar Drawer according to activeSidebarTab */}
@@ -103,13 +106,8 @@ export function App() {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           onApplyTemplate={(type) => {
-            const templateTitles = {
-              gamedev: 'Jogo Tower Defense & 3D',
-              roadmap: 'Roadmap & Sprint',
-              data: 'Tabelas & Monitor Web',
-              moodboard: 'Moodboard de Criador',
-            };
-            store.createWorkspace(templateTitles[type]);
+            store.applyTemplate(type);
+            setIsDrawerOpen(false);
           }}
           theme={store.theme}
         />
@@ -120,7 +118,6 @@ export function App() {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           theme={store.theme}
-          onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
           isSnappingEnabled={store.isSnappingEnabled}
           onToggleSnapping={() => store.setIsSnappingEnabled(!store.isSnappingEnabled)}
           onResetDefault={store.resetToDefault}
@@ -132,10 +129,9 @@ export function App() {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           archivedCards={store.cards.filter((c) => c.status === 'archived')}
-          onRestoreCard={(id) => store.updateCard(id, { status: 'in_progress' })}
-          onEmptyTrash={() => {
-            store.cards.filter((c) => c.status === 'archived').forEach((c) => store.deleteCard(c.id));
-          }}
+          onRestoreCard={(id) => store.restoreCard(id)}
+          onPermanentlyDeleteCard={(id) => store.permanentlyDeleteCard(id)}
+          onEmptyTrash={store.emptyTrash}
           theme={store.theme}
         />
       )}
@@ -249,6 +245,16 @@ export function App() {
         onTogglePublic={(isPub) => store.toggleWorkspacePublic(store.activeWorkspaceId, isPub)}
         theme={store.theme}
       />
+
+      {store.user && (
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          user={store.user}
+          onUpdateProfile={store.updateUserProfile}
+          theme={store.theme}
+        />
+      )}
     </div>
   );
 }

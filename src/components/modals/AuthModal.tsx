@@ -82,9 +82,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-3">
             <span className="font-black text-2xl text-black tracking-tighter">P</span>
           </div>
-          <h2 className="text-xl font-bold tracking-tight">Pampo Board Cloud</h2>
+          <h2 className="text-xl font-bold tracking-tight">Pampo Board</h2>
           <p className="text-xs text-neutral-400 mt-1">
-            Seus quadros infinitos, mídias e conexões sincronizados no MongoDB
+            Acesse seus quadros infinitos, mídias interativas e conexões
           </p>
         </div>
 

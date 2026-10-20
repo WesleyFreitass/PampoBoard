@@ -8,6 +8,7 @@ interface TrashDrawerProps {
   onClose: () => void;
   archivedCards: BoardCard[];
   onRestoreCard: (id: string) => void;
+  onPermanentlyDeleteCard?: (id: string) => void;
   onEmptyTrash: () => void;
   theme: 'dark' | 'light';
 }
@@ -17,6 +18,7 @@ export const TrashDrawer: React.FC<TrashDrawerProps> = ({
   onClose,
   archivedCards,
   onRestoreCard,
+  onPermanentlyDeleteCard,
   onEmptyTrash,
   theme,
 }) => {
@@ -70,17 +72,32 @@ export const TrashDrawer: React.FC<TrashDrawerProps> = ({
                   <div className="text-[10px] text-neutral-400 uppercase font-mono">{card.type}</div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound.playConnect();
-                    onRestoreCard(card.id);
-                  }}
-                  title="Restaurar este card no quadro"
-                  className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playConnect();
+                      onRestoreCard(card.id);
+                    }}
+                    title="Restaurar este card no quadro"
+                    className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                  {onPermanentlyDeleteCard && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playDelete();
+                        onPermanentlyDeleteCard(card.id);
+                      }}
+                      title="Excluir permanentemente"
+                      className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

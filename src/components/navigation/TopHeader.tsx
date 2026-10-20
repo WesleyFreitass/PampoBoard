@@ -10,8 +10,6 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize,
-  Moon,
-  Sun,
   Download,
   Upload,
   RotateCcw,
@@ -20,8 +18,6 @@ import {
   ArrowLeft,
   Folder,
   Share2,
-  Cloud,
-  CloudUpload,
   LogIn,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
@@ -79,9 +75,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="text-xs font-bold tracking-tight text-white m-0">Pampo Board</h1>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">
-                MVP
-              </span>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-mono text-neutral-400">
               <span>{store.currentCards.length} cards</span>
@@ -256,54 +249,42 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           </button>
         </div>
 
-        {/* Cloud Sync Status & Share Button */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl">
-          {store.user ? (
-            <div
-              title={store.isCloudSyncing ? 'Sincronizando com MongoDB...' : 'Quadro salvo na nuvem com sucesso'}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 rounded-lg border border-emerald-500/20"
-            >
-              {store.isCloudSyncing ? (
-                <CloudUpload className="w-3.5 h-3.5 animate-pulse text-cyan-400" />
-              ) : (
-                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-              )}
-              <span className="hidden sm:inline">
-                {store.isCloudSyncing ? 'Salvando...' : 'Nuvem OK'}
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                if (onOpenAuth) onOpenAuth();
-              }}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 rounded-lg border border-emerald-500/30 transition-colors"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Entrar / Salvar</span>
-            </button>
-          )}
+        {/* Action Buttons: Guest Login & Share */}
+        {(!store.user || onOpenShare) && (
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl">
+            {!store.user && (
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  if (onOpenAuth) onOpenAuth();
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 rounded-lg border border-emerald-500/30 transition-colors"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Entrar / Salvar</span>
+              </button>
+            )}
 
-          {/* Share Button */}
-          {onOpenShare && (
-            <button
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                onOpenShare();
-              }}
-              title="Compartilhar link somente-leitura deste quadro"
-              className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Compartilhar</span>
-            </button>
-          )}
-        </div>
+            {/* Share Button */}
+            {onOpenShare && (
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onOpenShare();
+                }}
+                title="Compartilhar link somente-leitura deste quadro"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Compartilhar</span>
+              </button>
+            )}
+          </div>
+        )}
 
-        {/* Board Options & Theme */}
+        {/* Board Options */}
         <div className="flex items-center gap-1 p-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl">
           <button
             type="button"
@@ -317,22 +298,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           <button
             type="button"
             onClick={resetToDefault}
-            title="Restaurar Quadro Demo Padrão"
+            title="Restaurar Demonstração Inicial"
             className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-400 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setTheme(theme === 'dark' ? 'light' : 'dark');
-              sound.playClick();
-            }}
-            title="Alternar Tema Claro / Escuro"
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white transition-colors"
-          >
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
