@@ -195,6 +195,15 @@ async function createDefaultUserData(userId) {
   return defaultWs;
 }
 
+function getBaseOrigin(req) {
+  if (process.env.NODE_ENV === 'production' && !req.get('host')?.includes('localhost')) {
+    return 'https://pampoboard.pampo.tech';
+  }
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  return protocol + '://' + host;
+}
+
 // OAuth Provider Config Info
 router.get('/config', (req, res) => {
   res.json({
