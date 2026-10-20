@@ -127,17 +127,18 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
             }`}
           >
             <Settings className="w-4 h-4 mb-0.5" />
-            <span>Configura.</span>
+            <span>Ajustes</span>
           </button>
 
-          {/* Desodors / Lixeira */}
+          {/* Lixeira / Descarte */}
           <button
             type="button"
             onClick={() => {
               sound.playClick();
               onSelectTab('trash');
+              if (!isDrawerOpen) onToggleDrawer();
             }}
-            title="Lixeira / Arquivados"
+            title="Lixeira e Itens Arquivados"
             className={`flex flex-col items-center justify-center w-12 py-2 rounded-xl text-[10px] font-medium transition-all ${
               activeTab === 'trash'
                 ? theme === 'dark'
@@ -149,7 +150,7 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
             }`}
           >
             <Trash2 className="w-4 h-4 mb-0.5" />
-            <span>Desodors</span>
+            <span>Lixeira</span>
           </button>
 
           {/* Histórico */}
@@ -158,6 +159,7 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
             onClick={() => {
               sound.playClick();
               onSelectTab('history');
+              if (!isDrawerOpen) onToggleDrawer();
             }}
             title="Histórico de Alterações"
             className={`flex flex-col items-center justify-center w-12 py-2 rounded-xl text-[10px] font-medium transition-all ${

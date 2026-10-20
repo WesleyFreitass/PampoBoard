@@ -109,6 +109,15 @@ class SoundFX {
       // Ignore
     }
   }
+
+  isMuted() {
+    return !this.enabled;
+  }
+
+  toggleMute() {
+    this.enabled = !this.enabled;
+    return !this.enabled;
+  }
 }
 
 export const sound = new SoundFX();

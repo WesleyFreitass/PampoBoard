@@ -135,7 +135,7 @@ export interface BoardCard {
   zoneId?: string;
   rootBoardId?: string; // id of the root Workspace Board
   parentBoardId?: string; // 'root' or id of parent Sub-Board
-  status?: 'backlog' | 'in_progress' | 'done'; // Used for Kanban mode mapping
+  status?: 'backlog' | 'in_progress' | 'done' | 'archived'; // Used for Kanban and Trash mode mapping
   noteData?: NoteCardData;
   liveData?: LiveCardData;
   mediaData?: MediaCardData;

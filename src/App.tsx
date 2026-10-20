@@ -5,6 +5,10 @@ import { FloatingDock } from './components/navigation/FloatingDock';
 import { TopHeader } from './components/navigation/TopHeader';
 import { SidebarRail } from './components/navigation/SidebarRail';
 import { ProjectsDrawer } from './components/navigation/ProjectsDrawer';
+import { TemplatesDrawer } from './components/navigation/TemplatesDrawer';
+import { SettingsDrawer } from './components/navigation/SettingsDrawer';
+import { TrashDrawer } from './components/navigation/TrashDrawer';
+import { HistoryDrawer } from './components/navigation/HistoryDrawer';
 import { SelectionBar } from './components/navigation/SelectionBar';
 import { MiniMap } from './components/navigation/MiniMap';
 import { KanbanView } from './components/views/KanbanView';
@@ -85,17 +89,74 @@ export function App() {
         }}
       />
 
-      {/* 220px Collapsible Projects Drawer */}
-      <ProjectsDrawer
-        workspaces={store.workspaces}
-        activeWorkspaceId={store.activeWorkspaceId}
-        onSelectWorkspace={store.switchWorkspace}
-        onCreateWorkspace={store.createWorkspace}
-        onDeleteWorkspace={store.deleteWorkspace}
-        isOpen={isDrawerOpen}
-        onToggle={() => setIsDrawerOpen(false)}
-        theme={store.theme}
-      />
+      {/* 220px Dynamic Sidebar Drawer according to activeSidebarTab */}
+      {activeSidebarTab === 'boards' && (
+        <ProjectsDrawer
+          workspaces={store.workspaces}
+          activeWorkspaceId={store.activeWorkspaceId}
+          onSelectWorkspace={store.switchWorkspace}
+          onCreateWorkspace={store.createWorkspace}
+          onDeleteWorkspace={store.deleteWorkspace}
+          isOpen={isDrawerOpen}
+          onToggle={() => setIsDrawerOpen(false)}
+          theme={store.theme}
+        />
+      )}
+
+      {activeSidebarTab === 'templates' && (
+        <TemplatesDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onApplyTemplate={(type) => {
+            const templateTitles = {
+              gamedev: 'Jogo Tower Defense & 3D',
+              roadmap: 'Roadmap & Sprint',
+              data: 'Tabelas & Monitor Web',
+              moodboard: 'Moodboard de Criador',
+            };
+            store.createWorkspace(templateTitles[type]);
+          }}
+          theme={store.theme}
+        />
+      )}
+
+      {activeSidebarTab === 'settings' && (
+        <SettingsDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          theme={store.theme}
+          onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
+          isSnappingEnabled={store.isSnappingEnabled}
+          onToggleSnapping={() => store.setIsSnappingEnabled(!store.isSnappingEnabled)}
+          onResetDefault={store.resetToDefault}
+        />
+      )}
+
+      {activeSidebarTab === 'trash' && (
+        <TrashDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          archivedCards={store.cards.filter((c) => c.status === 'archived')}
+          onRestoreCard={(id) => store.updateCard(id, { status: 'in_progress' })}
+          onEmptyTrash={() => {
+            store.cards.filter((c) => c.status === 'archived').forEach((c) => store.deleteCard(c.id));
+          }}
+          theme={store.theme}
+        />
+      )}
+
+      {activeSidebarTab === 'history' && (
+        <HistoryDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          canUndo={store.canUndo}
+          canRedo={store.canRedo}
+          onUndo={store.undo}
+          onRedo={store.redo}
+          lastSavedTimestamp={store.lastSavedTimestamp}
+          theme={store.theme}
+        />
+      )}
 
       {/* Re-expand pill when drawer is collapsed */}
       {!isDrawerOpen && (
