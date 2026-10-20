@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBoardStore } from './stores/useBoardStore';
 import { InfiniteCanvas } from './components/canvas/InfiniteCanvas';
 import { FloatingDock } from './components/navigation/FloatingDock';
@@ -39,6 +39,26 @@ export function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [selectedSubBoardCard, setSelectedSubBoardCard] = useState<BoardCard | null>(null);
+
+  // Check for OAuth callback in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('oauth_token');
+    const userJson = params.get('oauth_user');
+    const defaultWs = params.get('default_ws');
+
+    if (token && userJson) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userJson));
+        localStorage.setItem('pampo_auth_token', token);
+        localStorage.setItem('pampo_auth_user', JSON.stringify(user));
+        window.history.replaceState({}, document.title, window.location.pathname);
+        store.login(user, defaultWs || undefined);
+      } catch (err) {
+        console.error('Failed to parse OAuth response:', err);
+      }
+    }
+  }, [store]);
 
   const handleOpenExecutiveSummary = () => {
     confetti({

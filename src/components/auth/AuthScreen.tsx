@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api, AuthUser } from '../../services/api';
-import { Mail, Lock, User, ArrowRight, Sun, Moon, Sparkles, Layers, Box, Cpu, RefreshCw } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sun, Moon, Sparkles, Layers, Box, Cpu, RefreshCw, X } from 'lucide-react';
 import { GithubIcon, GoogleIcon } from '../common/SocialIcons';
 import { sound } from '../../utils/sound';
 
@@ -30,6 +30,30 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [googleEmailInput, setGoogleEmailInput] = useState('');
   const [googleNameInput, setGoogleNameInput] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [oauthConfigModalProvider, setOauthConfigModalProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    const provider = params.get('provider');
+    if (err === 'oauth_missing_config') {
+      setOauthConfigModalProvider(provider || 'github');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (err) {
+      setErrorMessage(`Aviso de login (${provider || 'OAuth'}): ${err}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const handleOfficialGithubOAuth = () => {
+    sound.playClick();
+    window.location.href = '/api/auth/github';
+  };
+
+  const handleOfficialGoogleOAuth = () => {
+    sound.playClick();
+    window.location.href = '/api/auth/google';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,20 +339,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             </div>
 
             {/* Social OAuth Buttons */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-2 gap-2 mb-2">
               <button
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setShowGithubPrompt((prev) => !prev);
-                  setShowGooglePrompt(false);
-                }}
-                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] ${
-                  showGithubPrompt
-                    ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                    : theme === 'dark'
-                    ? 'bg-neutral-900 border-neutral-700 text-neutral-200 hover:text-white'
-                    : 'bg-neutral-50 border-neutral-200 text-neutral-800'
+                onClick={handleOfficialGithubOAuth}
+                title="Entrar com a sua conta oficial do GitHub na página do GitHub.com"
+                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-neutral-900 border-neutral-700 text-neutral-200 hover:text-white hover:border-purple-500'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-800 hover:border-purple-500'
                 }`}
               >
                 <GithubIcon className="w-4 h-4 text-purple-400" />
@@ -337,17 +356,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
               <button
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setShowGooglePrompt((prev) => !prev);
-                  setShowGithubPrompt(false);
-                }}
-                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] ${
-                  showGooglePrompt
-                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                    : theme === 'dark'
-                    ? 'bg-neutral-900 border-neutral-700 text-neutral-200 hover:text-white'
-                    : 'bg-neutral-50 border-neutral-200 text-neutral-800'
+                onClick={handleOfficialGoogleOAuth}
+                title="Entrar com a sua conta oficial do Google na página do Google.com"
+                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-neutral-900 border-neutral-700 text-neutral-200 hover:text-white hover:border-cyan-500'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-800 hover:border-cyan-500'
                 }`}
               >
                 <GoogleIcon className="w-4 h-4" />
@@ -355,11 +369,25 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </button>
             </div>
 
-            {/* GitHub Prompt Form */}
+            <div className="flex items-center justify-center text-[11px] text-neutral-400 mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setShowGithubPrompt((prev) => !prev);
+                  setShowGooglePrompt(false);
+                }}
+                className="text-neutral-500 hover:text-purple-400 underline transition-colors"
+              >
+                {showGithubPrompt ? 'Ocultar login rápido' : 'Login rápido via @usuário do GitHub'}
+              </button>
+            </div>
+
+            {/* GitHub Quick Fallback Prompt Form */}
             {showGithubPrompt && (
               <form onSubmit={handleGithubLogin} className="p-3 rounded-xl border border-purple-500/30 bg-purple-500/5 space-y-2 mb-2 animate-fade-in">
                 <div className="text-[11px] font-semibold text-purple-300">
-                  Entre com seu usuário do GitHub (sua foto será puxada automaticamente):
+                  Entre com seu @usuário do GitHub (busca sua foto automaticamente):
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -444,6 +472,88 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <span>Auto-save Contínuo & Presets</span>
         </div>
       </footer>
+      {/* OAuth Provider Configuration Instructions Modal */}
+      {oauthConfigModalProvider && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div
+            className={`relative w-full max-w-lg rounded-2xl p-6 shadow-2xl border ${
+              theme === 'dark'
+                ? 'bg-[#15161b] border-[#262833] text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setOauthConfigModalProvider(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-neutral-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                {oauthConfigModalProvider === 'github' ? (
+                  <GithubIcon className="w-5 h-5 text-purple-400" />
+                ) : (
+                  <GoogleIcon className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-bold m-0">
+                  Login Oficial via {oauthConfigModalProvider === 'github' ? 'GitHub.com' : 'Google.com'}
+                </h3>
+                <p className="text-xs text-neutral-400 m-0">
+                  Configuração de chaves OAuth 2.0 no servidor
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-neutral-300">
+              <p className="m-0 leading-relaxed">
+                Para que o <strong>{oauthConfigModalProvider === 'github' ? 'GitHub' : 'Google'}</strong> abra a página de autorização oficial dele com segurança, o PampoBoard precisa de um <strong>Client ID</strong> e <strong>Client Secret</strong> cadastrados nas variáveis de ambiente da VPS.
+              </p>
+
+              {oauthConfigModalProvider === 'github' ? (
+                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-2 font-mono text-[11px]">
+                  <div className="text-purple-400 font-bold">
+                    Passo a passo no GitHub:
+                  </div>
+                  <div>1. Abra: <a href="https://github.com/settings/applications/new" target="_blank" rel="noreferrer" className="underline text-indigo-400 hover:text-indigo-300">github.com/settings/applications/new</a></div>
+                  <div><strong>Application name:</strong> PampoBoard</div>
+                  <div><strong>Homepage URL:</strong> https://pampoboard.pampo.tech</div>
+                  <div><strong>Authorization callback URL:</strong> https://pampoboard.pampo.tech/api/auth/github/callback</div>
+                  <div className="text-neutral-400 text-[10px] pt-1">
+                    2. Gere o Client Secret e adicione <code>GITHUB_CLIENT_ID</code> e <code>GITHUB_CLIENT_SECRET</code> no Docker.
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-2 font-mono text-[11px]">
+                  <div className="text-cyan-400 font-bold">
+                    Passo a passo no Google Cloud Console:
+                  </div>
+                  <div>1. Abra: <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="underline text-cyan-400 hover:text-cyan-300">console.cloud.google.com/apis/credentials</a></div>
+                  <div><strong>Origens JavaScript:</strong> https://pampoboard.pampo.tech</div>
+                  <div><strong>URIs de redirecionamento autorizados:</strong> https://pampoboard.pampo.tech/api/auth/google/callback</div>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] text-neutral-400">Opção imediata:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOauthConfigModalProvider(null);
+                    setShowGithubPrompt(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-colors"
+                >
+                  Entrar rápido pelo @usuário
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

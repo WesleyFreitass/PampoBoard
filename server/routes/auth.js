@@ -195,6 +195,230 @@ async function createDefaultUserData(userId) {
   return defaultWs;
 }
 
+// OAuth Provider Config Info
+router.get('/config', (req, res) => {
+  res.json({
+    hasGithubOAuth: !!process.env.GITHUB_CLIENT_ID,
+    hasGoogleOAuth: !!process.env.GOOGLE_CLIENT_ID,
+    githubClientId: process.env.GITHUB_CLIENT_ID || null,
+  });
+});
+
+// Official GitHub OAuth Redirect Flow
+router.get('/github', (req, res) => {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+
+  if (!clientId) {
+    return res.redirect('/?error=oauth_missing_config&provider=github');
+  }
+
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user:email&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  res.redirect(githubAuthUrl);
+});
+
+// GitHub OAuth Callback from GitHub.com
+router.get('/github/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) {
+      return res.redirect('/?error=no_code_provided');
+    }
+
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      console.error('GitHub token exchange error:', tokenData);
+      return res.redirect('/?error=github_token_exchange_failed');
+    }
+
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: 'Bearer ' + tokenData.access_token,
+        'User-Agent': 'PampoBoard-App',
+      },
+    });
+    const ghUser = await userRes.json();
+
+    let email = ghUser.email;
+    if (!email) {
+      try {
+        const emailsRes = await fetch('https://api.github.com/user/emails', {
+          headers: {
+            Authorization: 'Bearer ' + tokenData.access_token,
+            'User-Agent': 'PampoBoard-App',
+          },
+        });
+        const emails = await emailsRes.json();
+        if (Array.isArray(emails)) {
+          const primary = emails.find((e) => e.primary && e.verified) || emails[0];
+          if (primary) email = primary.email;
+        }
+      } catch (e) {
+        console.warn('Could not fetch GitHub private email:', e);
+      }
+    }
+
+    if (!email) {
+      email = `${ghUser.login.toLowerCase()}@github.com`;
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+    let defaultWs = null;
+
+    if (user) {
+      if (ghUser.avatar_url) user.avatar = ghUser.avatar_url;
+      if (ghUser.name && !user.name) user.name = ghUser.name;
+      await user.save();
+
+      defaultWs = await Workspace.findOne({ userId: user._id, isDefault: true });
+      if (!defaultWs) {
+        defaultWs = await Workspace.findOne({ userId: user._id });
+      }
+    } else {
+      user = new User({
+        name: ghUser.name || ghUser.login,
+        email: email.toLowerCase(),
+        password: Math.random().toString(36).slice(-12) + 'PB!2026',
+        avatar: ghUser.avatar_url,
+      });
+      await user.save();
+      defaultWs = await createDefaultUserData(user._id);
+    }
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+    const userSafe = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      role: user.role,
+    };
+
+    const targetUrl = `/?oauth_token=${encodeURIComponent(token)}&oauth_user=${encodeURIComponent(JSON.stringify(userSafe))}&default_ws=${encodeURIComponent(defaultWs ? defaultWs._id.toString() : '')}`;
+    res.redirect(targetUrl);
+  } catch (err) {
+    console.error('GitHub callback error:', err);
+    res.redirect('/?error=oauth_failed');
+  }
+});
+
+// Official Google OAuth Redirect Flow
+router.get('/google', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+
+  if (!clientId) {
+    return res.redirect('/?error=oauth_missing_config&provider=google');
+  }
+
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent`;
+  res.redirect(googleAuthUrl);
+});
+
+// Google OAuth Callback from Google.com
+router.get('/google/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) {
+      return res.redirect('/?error=no_code_provided');
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      console.error('Google token exchange error:', tokenData);
+      return res.redirect('/?error=google_token_exchange_failed');
+    }
+
+    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: 'Bearer ' + tokenData.access_token },
+    });
+    const googleUser = await userInfoRes.json();
+
+    if (!googleUser.email) {
+      return res.redirect('/?error=no_google_email');
+    }
+
+    const email = googleUser.email.toLowerCase();
+    let user = await User.findOne({ email });
+    let defaultWs = null;
+
+    if (user) {
+      if (googleUser.picture) user.avatar = googleUser.picture;
+      if (googleUser.name && !user.name) user.name = googleUser.name;
+      await user.save();
+
+      defaultWs = await Workspace.findOne({ userId: user._id, isDefault: true });
+      if (!defaultWs) {
+        defaultWs = await Workspace.findOne({ userId: user._id });
+      }
+    } else {
+      user = new User({
+        name: googleUser.name || email.split('@')[0],
+        email,
+        password: Math.random().toString(36).slice(-12) + 'PB!2026',
+        avatar: googleUser.picture || '',
+      });
+      await user.save();
+      defaultWs = await createDefaultUserData(user._id);
+    }
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+    const userSafe = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      role: user.role,
+    };
+
+    const targetUrl = `/?oauth_token=${encodeURIComponent(token)}&oauth_user=${encodeURIComponent(JSON.stringify(userSafe))}&default_ws=${encodeURIComponent(defaultWs ? defaultWs._id.toString() : '')}`;
+    res.redirect(targetUrl);
+  } catch (err) {
+    console.error('Google callback error:', err);
+    res.redirect('/?error=oauth_failed');
+  }
+});
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -330,71 +554,39 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 });
 
-// GitHub Login / Signup with Avatar Sync
+// Direct GitHub Profile Sync / Quick Login
 router.post('/github', async (req, res) => {
   try {
-    const { githubUsername, code } = req.body;
+    const { githubUsername } = req.body;
+    if (!githubUsername || !githubUsername.trim()) {
+      return res.status(400).json({ error: 'Usuário do GitHub é obrigatório' });
+    }
+
+    const cleanUser = githubUsername.trim();
     let ghProfile = null;
 
-    if (code) {
-      const clientId = process.env.GITHUB_CLIENT_ID;
-      const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-      if (clientId && clientSecret) {
-        const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({
-            client_id: clientId,
-            client_secret: clientSecret,
-            code,
-          }),
-        });
-        const tokenData = await tokenRes.json();
-        if (tokenData.access_token) {
-          const userRes = await fetch('https://api.github.com/user', {
-            headers: {
-              Authorization: Bearer ,
-              'User-Agent': 'PampoBoard-App',
-            },
-          });
-          ghProfile = await userRes.json();
-        }
+    try {
+      const userRes = await fetch('https://api.github.com/users/' + encodeURIComponent(cleanUser), {
+        headers: { 'User-Agent': 'PampoBoard-App' },
+      });
+      if (userRes.ok) {
+        ghProfile = await userRes.json();
       }
+    } catch (e) {
+      console.warn('GitHub lookup error:', e);
     }
 
-    if (!ghProfile && githubUsername) {
-      try {
-        const userRes = await fetch('https://api.github.com/users/' + encodeURIComponent(githubUsername.trim()), {
-          headers: { 'User-Agent': 'PampoBoard-App' },
-        });
-        if (userRes.ok) {
-          ghProfile = await userRes.json();
-        }
-      } catch (e) {
-        console.warn('GitHub API lookup fallback:', e.message);
-      }
-
-      if (!ghProfile) {
-        const cleanUser = githubUsername.trim();
-        ghProfile = {
-          login: cleanUser,
-          name: cleanUser,
-          avatar_url: 'https://github.com/' + encodeURIComponent(cleanUser) + '.png',
-          email: cleanUser.toLowerCase() + '@github.com',
-        };
-      }
+    if (!ghProfile) {
+      ghProfile = {
+        login: cleanUser,
+        name: cleanUser,
+        avatar_url: 'https://github.com/' + encodeURIComponent(cleanUser) + '.png',
+        email: cleanUser.toLowerCase() + '@github.com',
+      };
     }
 
-    if (!ghProfile || !ghProfile.login) {
-      return res.status(400).json({ error: 'Perfil do GitHub não encontrado ou inválido' });
-    }
-
-    const email = (ghProfile.email || (ghProfile.login.toLowerCase() + '@github.com')).toLowerCase();
+    const email = (ghProfile.email || (cleanUser.toLowerCase() + '@github.com')).toLowerCase();
     let user = await User.findOne({ email });
-
     let defaultWs = null;
 
     if (user) {
@@ -408,13 +600,12 @@ router.post('/github', async (req, res) => {
       }
     } else {
       user = new User({
-        name: ghProfile.name || ghProfile.login,
+        name: ghProfile.name || cleanUser,
         email,
         password: Math.random().toString(36).slice(-12) + 'PB!2026',
-        avatar: ghProfile.avatar_url || ('https://github.com/' + encodeURIComponent(ghProfile.login) + '.png'),
+        avatar: ghProfile.avatar_url || ('https://github.com/' + encodeURIComponent(cleanUser) + '.png'),
       });
       await user.save();
-
       defaultWs = await createDefaultUserData(user._id);
     }
 
@@ -432,60 +623,8 @@ router.post('/github', async (req, res) => {
       defaultWorkspaceId: defaultWs ? defaultWs._id.toString() : null,
     });
   } catch (err) {
-    console.error('Erro na autenticação GitHub:', err);
-    res.status(500).json({ error: 'Erro ao autenticar com GitHub' });
-  }
-});
-
-// Google Login / Signup with Avatar Sync
-router.post('/google', async (req, res) => {
-  try {
-    const { email, name, picture } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail do Google é obrigatório' });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-    let user = await User.findOne({ email: normalizedEmail });
-    let defaultWs = null;
-
-    if (user) {
-      if (picture) user.avatar = picture;
-      if (name && !user.name) user.name = name;
-      await user.save();
-
-      defaultWs = await Workspace.findOne({ userId: user._id, isDefault: true });
-      if (!defaultWs) {
-        defaultWs = await Workspace.findOne({ userId: user._id });
-      }
-    } else {
-      user = new User({
-        name: name || normalizedEmail.split('@')[0],
-        email: normalizedEmail,
-        password: Math.random().toString(36).slice(-12) + 'PB!2026',
-        avatar: picture || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(normalizedEmail)),
-      });
-      await user.save();
-
-      defaultWs = await createDefaultUserData(user._id);
-    }
-
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
-
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-      },
-      defaultWorkspaceId: defaultWs ? defaultWs._id.toString() : null,
-    });
-  } catch (err) {
-    console.error('Erro na autenticação Google:', err);
-    res.status(500).json({ error: 'Erro ao autenticar com Google' });
+    console.error('Erro no login GitHub:', err);
+    res.status(500).json({ error: 'Erro ao autenticar com o GitHub' });
   }
 });
 
