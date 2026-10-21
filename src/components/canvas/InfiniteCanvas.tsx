@@ -1104,6 +1104,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 <TextCard
                   card={card}
                   isSelected={isSelected}
+                  onDragStart={(e) => handleCardDragStart(card.id, e)}
                   onUpdate={(updates) => updateCard(card.id, updates)}
                 />
               )}
@@ -1112,6 +1113,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 <StickyCard
                   card={card}
                   isSelected={isSelected}
+                  onDragStart={(e) => handleCardDragStart(card.id, e)}
                   onUpdate={(updates) => updateCard(card.id, updates)}
                   onDelete={() => deleteCard(card.id)}
                   onDuplicate={() => duplicateCard(card.id)}

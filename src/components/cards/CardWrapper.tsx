@@ -164,6 +164,22 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
         }
         onSelect(e);
       }}
+      onPointerDown={(e) => {
+        if (isFrameless) {
+          const target = e.target as HTMLElement;
+          if (
+            target.tagName !== 'TEXTAREA' &&
+            target.tagName !== 'INPUT' &&
+            target.tagName !== 'BUTTON' &&
+            !target.closest('button') &&
+            !target.closest('textarea') &&
+            !target.closest('input') &&
+            !target.closest('[data-port]')
+          ) {
+            onDragStart(e);
+          }
+        }
+      }}
       onPointerUp={(e) => {
         if (isTargetCard && onConnectToCard) {
           e.stopPropagation();

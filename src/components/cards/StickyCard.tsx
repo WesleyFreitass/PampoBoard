@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { BoardCard, StickyCardData } from '../../types/board';
-import { Palette, Trash2, Copy } from 'lucide-react';
+import { Palette, Trash2, Copy, GripVertical } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
 interface StickyCardProps {
@@ -8,6 +8,7 @@ interface StickyCardProps {
   onUpdate: (updates: Partial<BoardCard>) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
+  onDragStart?: (e: React.PointerEvent) => void;
   isSelected?: boolean;
 }
 
@@ -64,6 +65,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   onUpdate,
   onDelete,
   onDuplicate,
+  onDragStart,
   isSelected,
 }) => {
   const stickyData: StickyCardData = card.stickyData || {
@@ -75,13 +77,34 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const theme = STICKY_THEMES[stickyData.color] || STICKY_THEMES.yellow;
 
+  const handlePointerDownWrapper = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName !== 'TEXTAREA' &&
+      target.tagName !== 'BUTTON' &&
+      !target.closest('button') &&
+      !target.closest('textarea')
+    ) {
+      onDragStart?.(e);
+    }
+  };
+
   return (
     <div
-      className={`relative w-full h-full min-h-[190px] p-4 rounded-xl shadow-xl flex flex-col justify-between select-none transition-all duration-150 ${theme.bg} ${theme.text} ${theme.shadow} border ${theme.border} group/sticky`}
+      onPointerDown={handlePointerDownWrapper}
+      className={`relative w-full h-full min-h-[190px] p-4 rounded-xl shadow-xl flex flex-col justify-between select-none transition-all duration-150 cursor-grab active:cursor-grabbing ${theme.bg} ${theme.text} ${theme.shadow} border ${theme.border} group/sticky`}
     >
-      {/* Top Paper Pin / Shadow Accent */}
-      <div className="flex items-center justify-between pb-2">
-        <div className="w-8 h-2 rounded-full bg-black/10 mx-auto -mt-2" />
+      {/* Top Paper Pin & Drag Strip */}
+      <div
+        onPointerDown={onDragStart}
+        title="Arraste para mover o post-it"
+        className="flex items-center justify-between pb-2 cursor-grab active:cursor-grabbing select-none -mt-1 pt-0.5"
+      >
+        <div className="flex items-center gap-1.5 opacity-40 group-hover/sticky:opacity-80 transition-opacity">
+          <GripVertical className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Post-it</span>
+        </div>
+        <div className="w-8 h-2 rounded-full bg-black/15 group-hover/sticky:bg-black/25 transition-colors" />
       </div>
 
       {/* Main Text Content */}
@@ -97,7 +120,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         onPointerDown={(e) => e.stopPropagation()}
         placeholder="Escreva seu lembrete ou ideia..."
         rows={6}
-        className={`w-full flex-1 bg-transparent border-none focus:outline-none resize-none text-sm font-medium leading-relaxed placeholder:text-neutral-600/70 p-0 ${theme.text}`}
+        className={`w-full flex-1 bg-transparent border-none focus:outline-none resize-none text-sm font-medium leading-relaxed placeholder:text-neutral-600/70 p-0 cursor-text select-text ${theme.text}`}
       />
 
       {/* Footer Color Swatches on Hover or Selection */}

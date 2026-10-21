@@ -1,10 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { BoardCard, TextCardData } from '../../types/board';
-import { Type } from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 
 interface TextCardProps {
   card: BoardCard;
   onUpdate: (updates: Partial<BoardCard>) => void;
+  onDragStart?: (e: React.PointerEvent) => void;
   isSelected?: boolean;
 }
 
@@ -25,7 +26,12 @@ const TEXT_COLORS = [
   { id: '#94a3b8', label: 'Cinza', class: 'bg-slate-400' },
 ];
 
-export const TextCard: React.FC<TextCardProps> = ({ card, onUpdate, isSelected }) => {
+export const TextCard: React.FC<TextCardProps> = ({
+  card,
+  onUpdate,
+  onDragStart,
+  isSelected,
+}) => {
   const textData: TextCardData = card.textData || {
     text: card.title || 'Título',
     fontSize: 'h1',
@@ -52,8 +58,18 @@ export const TextCard: React.FC<TextCardProps> = ({ card, onUpdate, isSelected }
 
   const currentStyle = FONT_STYLES[textData.fontSize] || FONT_STYLES.h1;
 
+  const handlePointerDownWrapper = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'TEXTAREA' && target.tagName !== 'BUTTON' && !target.closest('button')) {
+      onDragStart?.(e);
+    }
+  };
+
   return (
-    <div className="relative group/text w-full select-none">
+    <div
+      onPointerDown={handlePointerDownWrapper}
+      className="relative group/text w-full select-none cursor-grab active:cursor-grabbing p-1"
+    >
       {/* Floating Font Size & Color Bar on Hover / Selection */}
       {isSelected && (
         <div
@@ -105,23 +121,34 @@ export const TextCard: React.FC<TextCardProps> = ({ card, onUpdate, isSelected }
         </div>
       )}
 
-      {/* Editable Free Text Area */}
-      <textarea
-        ref={textareaRef}
-        value={textData.text}
-        onChange={(e) => {
-          onUpdate({
-            textData: { ...textData, text: e.target.value },
-            title: e.target.value.substring(0, 40) || 'Texto',
-          });
-          adjustHeight();
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        placeholder="Digite seu título ou texto..."
-        style={{ color: textData.color || '#f8fafc' }}
-        rows={1}
-        className={`w-full bg-transparent border-none focus:outline-none resize-none p-1 rounded hover:bg-white/[0.04] focus:bg-white/[0.06] transition-colors placeholder:text-neutral-600 ${currentStyle.className}`}
-      />
+      {/* Main Text Content Area with subtle side drag handle */}
+      <div className="flex items-start gap-1">
+        <div
+          onPointerDown={onDragStart}
+          title="Arraste para mover o texto"
+          className="pt-1.5 px-0.5 shrink-0 cursor-grab active:cursor-grabbing text-neutral-400 hover:text-white transition-opacity opacity-40 group-hover/text:opacity-90"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+
+        {/* Editable Free Text Area */}
+        <textarea
+          ref={textareaRef}
+          value={textData.text}
+          onChange={(e) => {
+            onUpdate({
+              textData: { ...textData, text: e.target.value },
+              title: e.target.value.substring(0, 40) || 'Texto',
+            });
+            adjustHeight();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          placeholder="Digite seu título ou texto..."
+          style={{ color: textData.color || '#f8fafc' }}
+          rows={1}
+          className={`flex-1 bg-transparent border-none focus:outline-none resize-none p-0.5 rounded hover:bg-white/[0.04] focus:bg-white/[0.06] transition-colors placeholder:text-neutral-600 cursor-text select-text ${currentStyle.className}`}
+        />
+      </div>
     </div>
   );
 };
