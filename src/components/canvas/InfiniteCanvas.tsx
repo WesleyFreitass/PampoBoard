@@ -1072,8 +1072,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               {card.type === 'board' && (
                 <SubBoardCard
                   card={card}
+                  isSelected={isSelected}
                   onUpdate={(updates) => updateCard(card.id, updates)}
                   onOpenSubBoard={onOpenSubBoard}
+                  onDragStart={(e) => handleCardDragStart(card.id, e)}
                 />
               )}
             </CardWrapper>
