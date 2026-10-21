@@ -15,6 +15,7 @@ import {
   Circle,
   CheckCircle2,
   ExternalLink,
+  GripVertical,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -22,6 +23,7 @@ interface ColumnCardProps {
   card: BoardCard;
   onUpdate: (updates: Partial<BoardCard>) => void;
   onExtractToBoard?: (item: ColumnItem) => void;
+  onStartDragItemOut?: (columnCard: BoardCard, item: ColumnItem, startEvt: React.PointerEvent) => void;
   isDropTarget?: boolean;
 }
 
@@ -29,6 +31,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
   card,
   onUpdate,
   onExtractToBoard,
+  onStartDragItemOut,
   isDropTarget = false,
 }) => {
   const columnData: ColumnCardData = card.columnData || {
@@ -184,9 +187,17 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
               className="group/item relative rounded-xl border border-neutral-700/80 bg-neutral-900/90 hover:border-purple-500/50 transition-all p-3 shadow-md space-y-2"
               onPointerDown={(e) => e.stopPropagation()}
             >
-              {/* Item Top Bar: Icon + Title + Actions */}
+              {/* Item Top Bar: Drag Grip + Icon + Title + Actions */}
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
+                  <div
+                    onPointerDown={(e) => onStartDragItemOut?.(card, item, e)}
+                    title="Arraste para fora da coluna para transformar em card normal no quadro"
+                    className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 text-neutral-500 hover:text-white rounded hover:bg-white/10 shrink-0 transition-colors"
+                  >
+                    <GripVertical className="w-3.5 h-3.5" />
+                  </div>
+
                   {itemType === 'note' && (
                     <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                   )}

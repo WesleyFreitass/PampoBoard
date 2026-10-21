@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { BoardStore } from '../../stores/useBoardStore';
 import { CardWrapper } from '../cards/CardWrapper';
 import { NoteCard } from '../cards/NoteCard';
+import { ChecklistCard } from '../cards/ChecklistCard';
 import { LiveCard } from '../cards/LiveCard';
 import { MediaCard } from '../cards/MediaCard';
 import { SmartLinkCard } from '../cards/SmartLinkCard';
@@ -76,6 +77,14 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   cardsRef.current = cards;
   const lastMovedCardPosRef = useRef<{ x: number; y: number } | null>(null);
   const hoveredColIdRef = useRef<string | null>(null);
+
+  // Dragging an item OUT of a column onto the free canvas
+  const [draggingItemOut, setDraggingItemOut] = useState<{
+    columnCard: BoardCard;
+    item: ColumnItem;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
 
   // Marquee selection state
   const [marqueeBox, setMarqueeBox] = useState<{
@@ -368,8 +377,19 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           linkData: item.linkData,
         });
       }
+    } else if (item.type === 'checklist') {
+      const newCard = addCard('checklist', { x: spawnX, y: spawnY }, columnCard.color);
+      if (newCard) {
+        updateCard(newCard.id, {
+          title: item.title || 'Checklist',
+          checklistData: {
+            title: item.title || 'Checklist',
+            items: item.checklist || [],
+          },
+        });
+      }
     } else {
-      // note, checklist, or task
+      // note or task
       const newCard = addCard('note', { x: spawnX, y: spawnY }, columnCard.color);
       if (newCard) {
         updateCard(newCard.id, {
@@ -377,7 +397,6 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           noteData: {
             title: item.title || 'Nota',
             body: item.body || item.text || '',
-            checklist: item.checklist || (item.text ? [{ id: `chk-${Date.now()}`, text: item.text, completed: !!item.done }] : []),
             tags: item.tag ? [item.tag] : [],
           },
         });
@@ -395,6 +414,113 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
     setToastMsg(`Item "${item.title || item.text || 'Item'}" extraído para o quadro!`);
     setTimeout(() => setToastMsg(null), 2500);
+  };
+
+  // Milanote Column: Drag an item OUT of the column onto the free canvas
+  const handleStartDragItemOut = (
+    columnCard: BoardCard,
+    item: ColumnItem,
+    startEvt: React.PointerEvent
+  ) => {
+    startEvt.stopPropagation();
+    const startX = startEvt.clientX;
+    const startY = startEvt.clientY;
+
+    setDraggingItemOut({
+      columnCard,
+      item,
+      clientX: startX,
+      clientY: startY,
+    });
+
+    const handleItemPointerMove = (moveEvt: PointerEvent) => {
+      setDraggingItemOut({
+        columnCard,
+        item,
+        clientX: moveEvt.clientX,
+        clientY: moveEvt.clientY,
+      });
+    };
+
+    const handleItemPointerUp = (upEvt: PointerEvent) => {
+      window.removeEventListener('pointermove', handleItemPointerMove);
+      window.removeEventListener('pointerup', handleItemPointerUp);
+      setDraggingItemOut(null);
+
+      const dx = Math.abs(upEvt.clientX - startX);
+      const dy = Math.abs(upEvt.clientY - startY);
+      const worldDrop = screenToWorld(upEvt.clientX, upEvt.clientY);
+
+      // Check if dropped outside the column bounds
+      const isOutsideColumn =
+        worldDrop.x < columnCard.x - 20 ||
+        worldDrop.x > columnCard.x + columnCard.width + 20 ||
+        worldDrop.y < columnCard.y - 20 ||
+        worldDrop.y > columnCard.y + columnCard.height + 20;
+
+      if ((dx > 25 || dy > 25) && isOutsideColumn) {
+        sound.playConnect();
+        const spawnX = Math.round(worldDrop.x - 160);
+        const spawnY = Math.round(worldDrop.y - 40);
+
+        if (item.type === 'table') {
+          const newCard = addCard('table', { x: spawnX, y: spawnY }, columnCard.color);
+          if (newCard) {
+            updateCard(newCard.id, {
+              title: item.title || 'Tabela',
+              tableData: item.tableData,
+            });
+          }
+        } else if (item.type === 'link') {
+          const newCard = addCard('link', { x: spawnX, y: spawnY }, columnCard.color);
+          if (newCard) {
+            updateCard(newCard.id, {
+              title: item.title || 'Link Web',
+              linkData: item.linkData,
+            });
+          }
+        } else if (item.type === 'checklist') {
+          const newCard = addCard('checklist', { x: spawnX, y: spawnY }, columnCard.color);
+          if (newCard) {
+            updateCard(newCard.id, {
+              title: item.title || 'Checklist',
+              checklistData: {
+                title: item.title || 'Checklist',
+                items: item.checklist || [],
+              },
+            });
+          }
+        } else {
+          // note or task
+          const newCard = addCard('note', { x: spawnX, y: spawnY }, columnCard.color);
+          if (newCard) {
+            updateCard(newCard.id, {
+              title: item.title || (item.text ? item.text.slice(0, 30) : 'Nota'),
+              noteData: {
+                title: item.title || 'Nota',
+                body: item.body || item.text || '',
+                tags: item.tag ? [item.tag] : [],
+              },
+            });
+          }
+        }
+
+        // Remove item from column
+        const currentItems = columnCard.columnData?.items || [];
+        updateCard(columnCard.id, {
+          columnData: {
+            title: columnCard.columnData?.title || columnCard.title,
+            items: currentItems.filter((i) => i.id !== item.id),
+          },
+        });
+
+        setToastMsg(`Item "${item.title || item.text || 'Item'}" movido para o quadro!`);
+        setTimeout(() => setToastMsg(null), 2500);
+      }
+    };
+
+    window.addEventListener('pointermove', handleItemPointerMove);
+    window.addEventListener('pointerup', handleItemPointerUp);
   };
 
   // Dragging Cards
@@ -537,16 +663,19 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 title: draggedCard.title || 'Link Web',
                 linkData: draggedCard.linkData,
               };
-            } else {
-              const hasChecklist =
-                draggedCard.noteData?.checklist &&
-                draggedCard.noteData.checklist.length > 0;
+            } else if (draggedCard.type === 'checklist') {
               newItem = {
-                id: `ci-${hasChecklist ? 'chk' : 'note'}-${ts}`,
-                type: hasChecklist ? 'checklist' : 'note',
+                id: `ci-chk-${ts}`,
+                type: 'checklist',
+                title: draggedCard.title || 'Checklist',
+                checklist: draggedCard.checklistData?.items || [],
+              };
+            } else {
+              newItem = {
+                id: `ci-note-${ts}`,
+                type: 'note',
                 title: draggedCard.title || 'Nota',
                 body: draggedCard.noteData?.body || '',
-                checklist: draggedCard.noteData?.checklist || [],
                 tag: draggedCard.noteData?.tags?.[0],
               };
             }
@@ -781,6 +910,13 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 />
               )}
 
+              {card.type === 'checklist' && (
+                <ChecklistCard
+                  card={card}
+                  onUpdate={(updates) => updateCard(card.id, updates)}
+                />
+              )}
+
               {card.type === 'live' && (
                 <LiveCard
                   card={card}
@@ -816,6 +952,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                   card={card}
                   onUpdate={(updates) => updateCard(card.id, updates)}
                   onExtractToBoard={(item) => handleExtractItemFromColumn(card, item)}
+                  onStartDragItemOut={(c, item, e) => handleStartDragItemOut(c, item, e)}
                   isDropTarget={hoveredColumnId === card.id}
                 />
               )}
@@ -876,6 +1013,26 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>{toastMsg}</span>
           </div>
+        </div>
+      )}
+
+      {/* Floating Ghost Card Follower when dragging item out of Column onto canvas */}
+      {draggingItemOut && (
+        <div
+          style={{
+            position: 'fixed',
+            left: draggingItemOut.clientX + 14,
+            top: draggingItemOut.clientY + 14,
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+          className="px-3.5 py-2.5 rounded-2xl bg-neutral-900/95 border-2 border-purple-400 shadow-2xl backdrop-blur-xl flex items-center gap-2.5 text-xs font-semibold text-white animate-in fade-in duration-100"
+        >
+          <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
+          <span>{draggingItemOut.item.title || draggingItemOut.item.text || 'Item'}</span>
+          <span className="text-[10px] font-mono text-purple-300 uppercase px-1.5 py-0.5 rounded bg-purple-500/20">
+            {draggingItemOut.item.type || 'card'}
+          </span>
         </div>
       )}
     </div>

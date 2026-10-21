@@ -390,6 +390,25 @@ export function useBoardStore() {
             tags: [],
           },
         };
+      } else if (type === 'checklist') {
+        newCard = {
+          id: newId,
+          type: 'checklist',
+          title: 'Checklist',
+          rootBoardId: activeWorkspaceId,
+          parentBoardId: activeBoardId,
+          x: Math.round(spawnX),
+          y: Math.round(spawnY),
+          width: 320,
+          height: 240,
+          color: 'emerald',
+          zIndex: 20,
+          status: 'in_progress',
+          checklistData: {
+            title: 'Checklist',
+            items: [],
+          },
+        };
       } else if (type === 'live') {
         newCard = {
           id: newId,

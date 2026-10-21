@@ -4,6 +4,7 @@ import {
   Search,
   X,
   StickyNote,
+  CheckSquare,
   Zap,
   Box,
   Globe,
@@ -153,6 +154,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ store, isOpen, o
               >
                 <StickyNote className="w-3.5 h-3.5 text-purple-400" />
                 <span>+ Criar Nota</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  addCard('checklist');
+                  onClose();
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-300 hover:bg-neutral-800 text-left"
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                <span>+ Criar Checklist</span>
               </button>
               <button
                 type="button"

@@ -1,4 +1,4 @@
-export type CardType = 'note' | 'live' | 'media' | 'link' | 'table' | 'column' | 'board';
+export type CardType = 'note' | 'checklist' | 'live' | 'media' | 'link' | 'table' | 'column' | 'board';
 
 export type CardColor = 'default' | 'slate' | 'lavender' | 'emerald' | 'amber' | 'rose' | 'cyan';
 
@@ -120,6 +120,11 @@ export interface ColumnCardData {
   items: ColumnItem[];
 }
 
+export interface ChecklistCardData {
+  title: string;
+  items: NoteChecklistItem[];
+}
+
 export interface SubBoardCardData {
   title: string;
   description: string;
@@ -145,6 +150,7 @@ export interface BoardCard {
   parentBoardId?: string; // 'root' or id of parent Sub-Board
   status?: 'backlog' | 'in_progress' | 'done' | 'archived'; // Used for Kanban and Trash mode mapping
   noteData?: NoteCardData;
+  checklistData?: ChecklistCardData;
   liveData?: LiveCardData;
   mediaData?: MediaCardData;
   linkData?: SmartLinkData;
