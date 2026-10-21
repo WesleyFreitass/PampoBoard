@@ -669,11 +669,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }
       });
 
-      // Check if dragging single card over a column
+      // Check if dragging single card over a column (block sub-board cards)
       if (cardsToMove.length === 1) {
         const movedId = cardsToMove[0];
         const cardObj = cardsRef.current.find((c) => c.id === movedId);
-        if (cardObj && cardObj.type !== 'column') {
+        if (cardObj && cardObj.type !== 'column' && cardObj.type !== 'board') {
           const orig = draggingCardRef.current!.initialCardPositions.find((o) => o.id === cardObj.id);
           const delta = deltas.find((d) => d.id === cardObj.id);
           const currentX = (orig?.x ?? cardObj.x) + (delta?.dx ?? 0);
@@ -706,7 +706,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         const allCards = cardsRef.current;
         const draggedCard = allCards.find((c) => c.id === draggedCardId);
 
-        if (draggedCard && draggedCard.type !== 'column') {
+        if (draggedCard && draggedCard.type !== 'column' && draggedCard.type !== 'board') {
           const mouseWorld = screenToWorld(upEvt.clientX, upEvt.clientY);
           const lastPos = lastMovedCardPosRef.current;
           const cardW = draggedCard.width || 320;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BoardCard, ColumnCardData, ColumnItem, NoteChecklistItem, PortPosition } from '../../types/board';
+import { BoardCard, ColumnCardData, ColumnItem, NoteChecklistItem, PortPosition, TableColumn } from '../../types/board';
 import {
   Plus,
   Trash2,
@@ -109,22 +109,101 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
     sound.playDelete();
   };
 
-  // Table row management inside a column table item
-  const addTableRow = (itemId: string) => {
+  // Table column & row management inside a column table item
+  const addTableColumn = (itemId: string, headerName?: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item) return;
+    const currentCols = item.tableData?.columns || [
+      { id: 'c1', header: 'Item', type: 'text' },
+      { id: 'c2', header: 'Valor', type: 'text' },
+    ];
+    const newColId = `col-${Date.now()}`;
+    const newCol: TableColumn = {
+      id: newColId,
+      header: headerName || `Coluna ${currentCols.length + 1}`,
+      type: 'text',
+      width: 120,
+    };
+    const currentRows = item.tableData?.rows || [];
+    updateItem(itemId, {
+      tableData: {
+        title: item.tableData?.title || item.title || 'Tabela',
+        columns: [...currentCols, newCol],
+        rows: currentRows,
+      },
+    });
+    sound.playClick();
+  };
+
+  const deleteTableColumn = (itemId: string, colId: string) => {
     const item = columnData.items.find((i) => i.id === itemId);
     if (!item || !item.tableData) return;
-    const rows = item.tableData.rows || [];
+    const currentCols = item.tableData.columns || [];
+    if (currentCols.length <= 1) return; // Keep at least one column
+    const updatedCols = currentCols.filter((c) => c.id !== colId);
+    const updatedRows = (item.tableData.rows || []).map((row) => {
+      const nextCells = { ...row.cells };
+      delete nextCells[colId];
+      return { ...row, cells: nextCells };
+    });
+    updateItem(itemId, {
+      tableData: {
+        ...item.tableData,
+        columns: updatedCols,
+        rows: updatedRows,
+      },
+    });
+    sound.playDelete();
+  };
+
+  const updateTableHeader = (itemId: string, colId: string, header: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item || !item.tableData) return;
+    const currentCols = item.tableData.columns || [];
+    const updatedCols = currentCols.map((col) =>
+      col.id === colId ? { ...col, header } : col
+    );
+    updateItem(itemId, {
+      tableData: {
+        ...item.tableData,
+        columns: updatedCols,
+      },
+    });
+  };
+
+  const addTableRow = (itemId: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item) return;
+    const cols = item.tableData?.columns || [
+      { id: 'c1', header: 'Item', type: 'text' },
+      { id: 'c2', header: 'Valor', type: 'text' },
+    ];
+    const rows = item.tableData?.rows || [];
     const newRow = {
       id: `r-${Date.now()}`,
       cells: {},
     };
     updateItem(itemId, {
       tableData: {
-        ...item.tableData,
+        title: item.tableData?.title || item.title || 'Tabela',
+        columns: cols,
         rows: [...rows, newRow],
       },
     });
     sound.playClick();
+  };
+
+  const deleteTableRow = (itemId: string, rowId: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item || !item.tableData) return;
+    const currentRows = item.tableData.rows || [];
+    updateItem(itemId, {
+      tableData: {
+        ...item.tableData,
+        rows: currentRows.filter((r) => r.id !== rowId),
+      },
+    });
+    sound.playDelete();
   };
 
   const updateTableCell = (
@@ -468,25 +547,58 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
                       <thead>
                         <tr className="border-b border-white/10 text-neutral-400 bg-white/5">
                           {(item.tableData?.columns || [
-                            { id: 'c1', header: 'Item' },
-                            { id: 'c2', header: 'Valor' },
+                            { id: 'c1', header: 'Item', type: 'text' },
+                            { id: 'c2', header: 'Valor', type: 'text' },
                           ]).map((col) => (
                             <th
                               key={col.id}
-                              className="p-1.5 text-left font-mono font-medium text-[10px]"
+                              className="group/th p-1 text-left font-mono font-medium text-[10px] min-w-[70px]"
                             >
-                              {col.header}
+                              <div className="flex items-center justify-between gap-1">
+                                <input
+                                  type="text"
+                                  value={col.header}
+                                  onChange={(e) =>
+                                    updateTableHeader(item.id, col.id, e.target.value)
+                                  }
+                                  placeholder="Coluna..."
+                                  className="bg-transparent text-neutral-300 font-mono font-medium text-[10px] focus:outline-none focus:ring-1 focus:ring-cyan-500/50 rounded px-1 min-w-[50px] w-full"
+                                />
+                                {(item.tableData?.columns || []).length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteTableColumn(item.id, col.id)}
+                                    title="Excluir coluna"
+                                    className="opacity-0 group-hover/th:opacity-100 text-neutral-500 hover:text-rose-400 p-0.5 rounded transition-opacity"
+                                  >
+                                    <Trash2 className="w-2.5 h-2.5" />
+                                  </button>
+                                )}
+                              </div>
                             </th>
                           ))}
+                          <th className="p-1 w-6 text-center">
+                            <button
+                              type="button"
+                              onClick={() => addTableColumn(item.id)}
+                              title="Adicionar coluna à tabela"
+                              className="p-1 rounded text-cyan-400 hover:text-white hover:bg-cyan-500/20 transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {(item.tableData?.rows || []).map((row) => (
                           <tr
                             key={row.id}
-                            className="border-b border-white/5 last:border-none"
+                            className="group/tr border-b border-white/5 last:border-none hover:bg-white/[0.02]"
                           >
-                            {(item.tableData?.columns || []).map((col) => (
+                            {(item.tableData?.columns || [
+                              { id: 'c1', header: 'Item', type: 'text' },
+                              { id: 'c2', header: 'Valor', type: 'text' },
+                            ]).map((col) => (
                               <td key={col.id} className="p-1">
                                 <input
                                   type="text"
@@ -503,19 +615,38 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
                                 />
                               </td>
                             ))}
+                            <td className="p-1 w-6 text-center opacity-0 group-hover/tr:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => deleteTableRow(item.id, row.id)}
+                                title="Excluir linha"
+                                className="p-0.5 rounded text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10"
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => addTableRow(item.id)}
-                    className="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 px-1"
-                  >
-                    <Plus className="w-3 h-3" /> Adicionar linha
-                  </button>
+                  <div className="flex items-center gap-3 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => addTableRow(item.id)}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-cyan-500/10 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" /> Adicionar linha
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addTableColumn(item.id)}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-cyan-500/10 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" /> Adicionar coluna
+                    </button>
+                  </div>
                 </div>
               )}
 
