@@ -68,12 +68,6 @@ export function generateExecutiveSummary(
       keyFindings.push(`Sub-Quadro "${card.title}": ${card.boardData.itemCount} itens aninhados`);
     }
 
-    if (card.type === 'live' && card.liveData) {
-      keyFindings.push(
-        `Card Vivo "${card.title}": Modo ${card.liveData.mode.toUpperCase()} com valor atual ${card.liveData.value}${card.liveData.unit ? ' ' + card.liveData.unit : ''} (Status: ${card.liveData.status})`
-      );
-    }
-
     if (card.type === 'link' && card.linkData) {
       keyFindings.push(
         `Monitor Web "${card.title}": Status ${card.linkData.status.toUpperCase()} (${card.linkData.latencyMs}ms)`

@@ -114,7 +114,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ store, isOpen, o
                 >
                   <div className="flex items-center gap-2.5">
                     {card.type === 'note' && <StickyNote className="w-4 h-4 text-purple-400" />}
-                    {card.type === 'live' && <Zap className="w-4 h-4 text-amber-400" />}
                     {card.type === 'media' && <Box className="w-4 h-4 text-emerald-400" />}
                     {card.type === 'link' && <Globe className="w-4 h-4 text-cyan-400" />}
 
@@ -165,17 +164,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ store, isOpen, o
               >
                 <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
                 <span>+ Criar Checklist</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  addCard('live');
-                  onClose();
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-300 hover:bg-neutral-800 text-left"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>+ Criar Card Vivo</span>
               </button>
               <button
                 type="button"

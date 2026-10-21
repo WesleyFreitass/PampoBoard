@@ -5,7 +5,6 @@ import {
   Hand,
   StickyNote,
   CheckSquare,
-  Zap,
   Box,
   Globe,
   Layers,
@@ -99,16 +98,6 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
           >
             <CheckSquare className="w-4 h-4 text-emerald-400" />
             <span className="hidden sm:inline">Checklist</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addCard('live')}
-            title="Criar Card Vivo Reativo (L)"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-amber-500/15 transition-all active:scale-95"
-          >
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">Card Vivo</span>
           </button>
 
           <button

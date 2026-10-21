@@ -3,7 +3,6 @@ import { BoardStore } from '../../stores/useBoardStore';
 import { CardWrapper } from '../cards/CardWrapper';
 import { NoteCard } from '../cards/NoteCard';
 import { ChecklistCard } from '../cards/ChecklistCard';
-import { LiveCard } from '../cards/LiveCard';
 import { MediaCard } from '../cards/MediaCard';
 import { SmartLinkCard } from '../cards/SmartLinkCard';
 import { TableCard } from '../cards/TableCard';
@@ -1032,14 +1031,6 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 <ChecklistCard
                   card={card}
                   onUpdate={(updates) => updateCard(card.id, updates)}
-                />
-              )}
-
-              {card.type === 'live' && (
-                <LiveCard
-                  card={card}
-                  onUpdate={(updates) => updateCard(card.id, updates)}
-                  onTriggerPulse={triggerPulse}
                 />
               )}
 

@@ -409,30 +409,6 @@ export function useBoardStore() {
             items: [],
           },
         };
-      } else if (type === 'live') {
-        newCard = {
-          id: newId,
-          type: 'live',
-          title: 'Card Vivo',
-          rootBoardId: activeWorkspaceId,
-          parentBoardId: activeBoardId,
-          x: Math.round(spawnX),
-          y: Math.round(spawnY),
-          width: 320,
-          height: 330,
-          color: 'amber',
-          zIndex: 20,
-          status: 'backlog',
-          liveData: {
-            title: 'Card Vivo',
-            mode: 'trigger',
-            value: 0,
-            isActive: true,
-            status: 'idle',
-            unit: '%',
-            actionLog: [],
-          },
-        };
       } else if (type === 'media') {
         newCard = {
           id: newId,
@@ -917,21 +893,6 @@ export function useBoardStore() {
           setCards((prev) =>
             prev.map((targetCard) => {
               if (targetCard.id === conn.toCardId) {
-                // If target is live card: increment or activate
-                if (targetCard.type === 'live' && targetCard.liveData) {
-                  return {
-                    ...targetCard,
-                    liveData: {
-                      ...targetCard.liveData,
-                      status: 'active',
-                      value: targetCard.liveData.value + 1,
-                      actionLog: [
-                        `📥 Pulso recebido de ${sourceCardId} às ${new Date().toLocaleTimeString()}`,
-                        ...(targetCard.liveData.actionLog || []).slice(0, 5),
-                      ],
-                    },
-                  };
-                }
                 // If target is note card: check off first unchecked item or append a log
                 if (targetCard.type === 'note' && targetCard.noteData) {
                   const items = targetCard.noteData.checklist || [];
@@ -1439,30 +1400,30 @@ export function useBoardStore() {
           },
         ];
       } else if (templateType === 'data') {
-        const idLive = `card-live-${ts}`;
+        const idLink = `card-link-${ts}`;
         const idTbl = `card-tbl-${ts}`;
         newCards = [
           {
-            id: idLive,
+            id: idLink,
             rootBoardId: targetWsId,
             parentBoardId: targetParentId,
-            type: 'live',
+            type: 'link',
             title: 'Monitor de Serviços & Uptime',
             x: baseOffsetX,
             y: baseOffsetY,
             width: 340,
-            height: 380,
+            height: 280,
             zIndex: 10,
             color: 'cyan',
             status: 'in_progress',
-            liveData: {
-              title: 'Monitor de Serviços & Uptime',
-              mode: 'counter',
-              value: 99.9,
-              isActive: true,
-              status: 'active',
-              unit: '%',
-              actionLog: ['API OK (14ms)', 'MongoDB OK (4ms)'],
+            linkData: {
+              url: 'https://api.pampo.tech',
+              title: 'API Gateway Pampo',
+              description: 'Serviço central de autenticação e boards',
+              status: 'online',
+              latencyMs: 18,
+              lastChecked: 'Agora mesmo',
+              sslSecure: true,
             },
           },
           {
@@ -1499,7 +1460,7 @@ export function useBoardStore() {
             id: `conn-live-${ts}`,
             rootBoardId: targetWsId,
             parentBoardId: targetParentId,
-            fromCardId: idLive,
+            fromCardId: idLink,
             fromPort: 'right',
             toCardId: idTbl,
             toPort: 'left',
