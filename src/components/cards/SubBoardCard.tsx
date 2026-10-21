@@ -94,17 +94,6 @@ export const SubBoardCard: React.FC<SubBoardCardProps> = ({
           ))}
         </div>
       )}
-
-      {/* Button to enter infinite nested sub-board */}
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="w-full py-2 px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm"
-      >
-        <FolderOpen className="w-3.5 h-3.5" />
-        <span>Abrir Sub-Quadro Infinito</span>
-        <ArrowUpRight className="w-3.5 h-3.5 ml-auto" />
-      </button>
     </div>
   );
 };
