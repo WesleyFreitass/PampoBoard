@@ -1,4 +1,4 @@
-export type CardType = 'note' | 'checklist' | 'live' | 'media' | 'link' | 'table' | 'column' | 'board';
+export type CardType = 'note' | 'sticky' | 'text' | 'checklist' | 'live' | 'media' | 'link' | 'table' | 'column' | 'board';
 
 export type CardColor = 'default' | 'slate' | 'lavender' | 'emerald' | 'amber' | 'rose' | 'cyan';
 
@@ -127,6 +127,27 @@ export interface ChecklistCardData {
   items: NoteChecklistItem[];
 }
 
+export interface TextCardData {
+  text: string;
+  fontSize: 'h1' | 'h2' | 'h3' | 'body';
+  color?: string;
+}
+
+export interface StickyCardData {
+  text: string;
+  color: 'yellow' | 'pink' | 'mint' | 'blue' | 'lavender' | 'peach';
+  fontSize?: 'normal' | 'large';
+}
+
+export interface DrawingStroke {
+  id: string;
+  points: Position[];
+  color: string;
+  width: number;
+  rootBoardId?: string;
+  parentBoardId?: string;
+}
+
 export interface SubBoardCardData {
   title: string;
   description: string;
@@ -159,6 +180,8 @@ export interface BoardCard {
   tableData?: TableCardData;
   columnData?: ColumnCardData;
   boardData?: SubBoardCardData;
+  textData?: TextCardData;
+  stickyData?: StickyCardData;
 }
 
 export interface Connection {
@@ -221,13 +244,14 @@ export interface BoardState {
   cards: BoardCard[];
   connections: Connection[];
   zones: Zone[];
+  drawings: DrawingStroke[];
   selectedCardIds: string[];
   selectedConnectionIds: string[];
   selectedZoneIds: string[];
   viewMode: ViewMode;
   theme: 'dark' | 'light';
   viewport: ViewportTransform;
-  activeTool: 'select' | 'pan' | 'connect';
+  activeTool: 'select' | 'pan' | 'connect' | 'draw';
   connectingFrom: { cardId: string; port: PortPosition; itemId?: string } | null;
   dragSelectionBox: { startX: number; startY: number; endX: number; endY: number } | null;
   isSnappingEnabled: boolean;

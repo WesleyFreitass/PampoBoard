@@ -105,10 +105,13 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
   heightRef.current = card.height;
 
   const isBoard = card.type === 'board';
+  const isText = card.type === 'text';
+  const isSticky = card.type === 'sticky';
+  const isFrameless = isBoard || isText || isSticky;
 
   // Dynamically synchronize DOM height
   useEffect(() => {
-    if (!wrapperRef.current || isBoard) return;
+    if (!wrapperRef.current || isFrameless) return;
     const el = wrapperRef.current;
 
     const syncHeight = () => {
@@ -168,9 +171,11 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
         }
       }}
       className={`absolute select-none transition-all duration-150 ${
-        isBoard
+        isFrameless
           ? isTargetCard
-            ? 'cursor-crosshair ring-2 ring-cyan-400/80 rounded-3xl'
+            ? 'cursor-crosshair ring-2 ring-cyan-400/80 rounded-2xl'
+            : isSelected && isText
+            ? 'ring-1 ring-indigo-500/50 rounded-lg'
             : ''
           : `rounded-xl backdrop-blur-xl border ${style.bg} ${
               isTargetCard
@@ -278,7 +283,7 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
       )}
 
       {/* Header bar (Drag Handle) for regular cards */}
-      {!isBoard && (
+      {!isFrameless && (
         <div
           onPointerDown={handlePointerDownHeader}
           className="px-3.5 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing border-b border-white/5"
@@ -373,14 +378,14 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
       )}
 
       {/* Card Content Body */}
-      {isBoard ? (
+      {isFrameless ? (
         <div className="w-full">{children}</div>
       ) : (
         <div className="p-3.5 pt-2">{children}</div>
       )}
 
       {/* Footer / Status Tag for regular cards */}
-      {!isBoard && (
+      {!isFrameless && (
         <div className="px-3.5 pb-2.5 flex items-center justify-between text-[11px] text-neutral-400 border-t border-white/5 pt-2">
           <div className="flex items-center gap-1.5">
             <select

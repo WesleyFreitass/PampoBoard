@@ -8,12 +8,15 @@ import { SmartLinkCard } from '../cards/SmartLinkCard';
 import { TableCard } from '../cards/TableCard';
 import { ColumnCard } from '../cards/ColumnCard';
 import { SubBoardCard } from '../cards/SubBoardCard';
+import { TextCard } from '../cards/TextCard';
+import { StickyCard } from '../cards/StickyCard';
 import { ZoneComponent } from './ZoneComponent';
 import { ConnectionLayer } from './ConnectionLayer';
+import { DrawingLayer } from './DrawingLayer';
 import { findSnapPort, findSnapCardOrPort, getOptimalPortBetweenCards, getPortCoordinates } from '../../utils/bezier';
 import { PortPosition, Position, BoardCard, ColumnItem } from '../../types/board';
 import { sound } from '../../utils/sound';
-import { CheckCircle2, Image as ImageIcon, Trash2, Sparkles } from 'lucide-react';
+import { CheckCircle2, Image as ImageIcon, Trash2, Sparkles, PenTool } from 'lucide-react';
 
 interface InfiniteCanvasProps {
   store: BoardStore;
@@ -71,6 +74,12 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const [mouseCanvasPos, setMouseCanvasPos] = useState<Position | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null);
+
+  // Freehand Drawing State
+  const [penColor, setPenColor] = useState<string>('#38bdf8');
+  const [penWidth, setPenWidth] = useState<number>(3.5);
+  const [currentStroke, setCurrentStroke] = useState<{ id: string; points: Position[]; color: string; width: number } | null>(null);
+  const [isDrawing, setIsDrawing] = useState<boolean>(false);
 
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
@@ -284,6 +293,20 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       return;
     }
 
+    // Freehand Drawing Mode
+    if (activeTool === 'draw' && e.button === 0) {
+      const worldPos = screenToWorld(e.clientX, e.clientY);
+      const newStroke = {
+        id: `stroke-${Date.now()}`,
+        points: [worldPos],
+        color: penColor,
+        width: penWidth,
+      };
+      setCurrentStroke(newStroke);
+      setIsDrawing(true);
+      return;
+    }
+
     if (e.button === 0) {
       // If we were connecting, cancel it on empty click
       if (connectingFrom) {
@@ -310,6 +333,14 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
     const worldPos = screenToWorld(e.clientX, e.clientY);
     setMouseCanvasPos(worldPos);
+
+    // Freehand Drawing
+    if (isDrawing && currentStroke) {
+      setCurrentStroke((prev) =>
+        prev ? { ...prev, points: [...prev.points, worldPos] } : null
+      );
+      return;
+    }
 
     // Pan canvas
     if (isPanning) {
@@ -349,6 +380,15 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
   // Pointer Up on Canvas
   const handleCanvasPointerUp = (e: React.PointerEvent) => {
+    // Complete freehand stroke
+    if (isDrawing && currentStroke) {
+      if (currentStroke.points.length > 1) {
+        store.addDrawing(currentStroke);
+      }
+      setCurrentStroke(null);
+      setIsDrawing(false);
+    }
+
     if (isPanning) {
       setIsPanning(false);
     }
@@ -949,6 +989,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const getCursorClass = () => {
     if (isPanning) return 'cursor-grabbing';
     if (isSpacePressed || activeTool === 'pan') return 'cursor-grab';
+    if (activeTool === 'draw') return 'cursor-crosshair';
     if (connectingFrom) return 'cursor-crosshair';
     return 'cursor-default';
   };
@@ -964,6 +1005,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
       onPointerUp={handleCanvasPointerUp}
+      onDoubleClick={(e) => {
+        if (
+          activeTool === 'select' &&
+          !(e.target as HTMLElement).closest('[id^="card-"]') &&
+          !(e.target as HTMLElement).closest('[id^="zone-"]')
+        ) {
+          const worldPos = screenToWorld(e.clientX, e.clientY);
+          store.addCard('text', { x: Math.round(worldPos.x), y: Math.round(worldPos.y) });
+        }
+      }}
       className={`relative w-full h-full overflow-hidden select-none ${getCursorClass()} ${
         store.theme === 'dark' ? 'bg-[#0c0d12]' : 'bg-[#f8fafc]'
       }`}
@@ -976,6 +1027,14 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           backgroundImage: `radial-gradient(circle, ${gridDotColor} 1.2px, transparent 1.2px)`,
           backgroundPosition: `${viewport.x}px ${viewport.y}px`,
         }}
+      />
+
+      {/* Freehand Drawing Layer (Digital Ink / Doodle) */}
+      <DrawingLayer
+        drawings={store.currentDrawings || []}
+        currentStroke={currentStroke}
+        viewport={viewport}
+        onDeleteDrawing={store.deleteDrawing}
       />
 
       {/* Connection Layer (Wires, Arrows, Pulses) rendered across full canvas */}
@@ -1041,6 +1100,24 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               onDragStart={(e) => handleCardDragStart(card.id, e)}
               onExpand={() => onOpenExpandMedia?.(card.id)}
             >
+              {card.type === 'text' && (
+                <TextCard
+                  card={card}
+                  isSelected={isSelected}
+                  onUpdate={(updates) => updateCard(card.id, updates)}
+                />
+              )}
+
+              {card.type === 'sticky' && (
+                <StickyCard
+                  card={card}
+                  isSelected={isSelected}
+                  onUpdate={(updates) => updateCard(card.id, updates)}
+                  onDelete={() => deleteCard(card.id)}
+                  onDuplicate={() => duplicateCard(card.id)}
+                />
+              )}
+
               {card.type === 'note' && (
                 <NoteCard
                   card={card}
@@ -1174,10 +1251,83 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           </span>
         </div>
       )}
+      {/* Floating Pen Toolbar when Drawing Tool is Active */}
+      {activeTool === 'draw' && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-neutral-700/80 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+            <PenTool className="w-3.5 h-3.5" />
+            <span>Caneta</span>
+          </div>
+
+          <div className="h-4 w-px bg-neutral-700" />
+
+          {/* Pen Colors */}
+          <div className="flex items-center gap-1.5" title="Cor da caneta">
+            {['#38bdf8', '#34d399', '#fde047', '#f43f5e', '#c084fc', '#ffffff'].map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setPenColor(c)}
+                style={{ backgroundColor: c }}
+                className={`w-4 h-4 rounded-full transition-transform hover:scale-125 ${
+                  penColor === c ? 'ring-2 ring-white scale-110' : 'opacity-80 hover:opacity-100'
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="h-4 w-px bg-neutral-700" />
+
+          {/* Pen Widths */}
+          <div className="flex items-center gap-1">
+            {[
+              { w: 2, label: 'Fina' },
+              { w: 3.5, label: 'Média' },
+              { w: 6, label: 'Grossa' },
+            ].map(({ w, label }) => (
+              <button
+                key={w}
+                type="button"
+                title={label}
+                onClick={() => setPenWidth(w)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  penWidth === w
+                    ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="h-4 w-px bg-neutral-700" />
+
+          {/* Clear Drawings */}
+          <button
+            type="button"
+            onClick={store.clearDrawings}
+            className="px-2 py-0.5 rounded text-[10px] text-neutral-400 hover:text-rose-400 transition-colors"
+            title="Limpar todos os desenhos livres deste quadro"
+          >
+            Limpar
+          </button>
+
+          {/* Done / Exit */}
+          <button
+            type="button"
+            onClick={() => store.setActiveTool('select')}
+            className="px-2.5 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold transition-colors shadow"
+          >
+            Concluir
+          </button>
+        </div>
+      )}
+
       {/* Floating Action Pill when an arrow/connection is selected */}
       {selectedConnectionIds.length > 0 && (
         <div
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-neutral-700/80 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-neutral-700/80 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150 flex-wrap justify-center max-w-[95vw]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2 text-xs font-medium text-neutral-200">
@@ -1187,6 +1337,54 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               {selectedConnectionIds.length === 1 ? 'seta selecionada' : 'setas selecionadas'}
             </span>
           </div>
+
+          <div className="h-4 w-px bg-neutral-700" />
+
+          {/* Color Palette for Selected Connection */}
+          <div className="flex items-center gap-1.5" title="Alterar cor da seta">
+            {['#a855f7', '#38bdf8', '#10b981', '#f59e0b', '#f43f5e', '#e2e8f0'].map((col) => (
+              <button
+                key={col}
+                type="button"
+                onClick={() => {
+                  selectedConnectionIds.forEach((id) => updateConnection(id, { color: col }));
+                  sound.playClick();
+                }}
+                style={{ backgroundColor: col }}
+                className="w-3.5 h-3.5 rounded-full border border-black/40 hover:scale-125 transition-transform"
+              />
+            ))}
+          </div>
+
+          <div className="h-4 w-px bg-neutral-700" />
+
+          {/* Style Toggle: Solid vs Dashed */}
+          <button
+            type="button"
+            title="Alternar entre linha sólida e tracejada"
+            onClick={() => {
+              const firstConn = connections.find((c) => c.id === selectedConnectionIds[0]);
+              const nextStyle = firstConn?.style === 'dashed' ? 'solid' : 'dashed';
+              selectedConnectionIds.forEach((id) => updateConnection(id, { style: nextStyle }));
+              sound.playClick();
+            }}
+            className="px-2 py-0.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-[10px] font-mono text-neutral-300 hover:text-white transition-colors border border-neutral-700"
+          >
+            {connections.find((c) => c.id === selectedConnectionIds[0])?.style === 'dashed' ? 'Tracejada' : 'Sólida'}
+          </button>
+
+          {/* Label input when 1 connection is selected */}
+          {selectedConnectionIds.length === 1 && (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={connections.find((c) => c.id === selectedConnectionIds[0])?.label || ''}
+                onChange={(e) => updateConnection(selectedConnectionIds[0], { label: e.target.value })}
+                placeholder="Rótulo da seta..."
+                className="bg-neutral-950 border border-neutral-700 rounded-lg px-2 py-0.5 text-xs text-neutral-200 placeholder-neutral-500 w-28 focus:w-36 transition-all focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+          )}
 
           <div className="h-4 w-px bg-neutral-700" />
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   BoardCard,
   BoardState,
@@ -10,6 +10,7 @@ import {
   CardType,
   CardColor,
   BoardWorkspace,
+  DrawingStroke,
 } from '../types/board';
 import { initialCards, initialConnections, initialZones, initialWorkspaces } from '../utils/sampleData';
 import { sound } from '../utils/sound';
@@ -76,7 +77,7 @@ export function useBoardStore() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('free');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'connect'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'connect' | 'draw'>('select');
   const [connectingFrom, setConnectingFrom] = useState<{ cardId: string; port: PortPosition; itemId?: string } | null>(null);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
@@ -85,6 +86,14 @@ export function useBoardStore() {
   const [isSnappingEnabled, setIsSnappingEnabled] = useState<boolean>(true);
   const [lastSavedTimestamp, setLastSavedTimestamp] = useState<number>(Date.now());
   const [activePulseConnectionId, setActivePulseConnectionId] = useState<string | null>(null);
+
+  const [drawings, setDrawings] = useState<DrawingStroke[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY + '_drawings');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
 
   // History for undo/redo
   const historyRef = useRef<{ cards: BoardCard[]; connections: Connection[]; zones: Zone[] }[]>([]);
@@ -134,6 +143,7 @@ export function useBoardStore() {
       localStorage.setItem(STORAGE_KEY + '_cards', JSON.stringify(cards));
       localStorage.setItem(STORAGE_KEY + '_connections', JSON.stringify(connections));
       localStorage.setItem(STORAGE_KEY + '_zones', JSON.stringify(zones));
+      localStorage.setItem(STORAGE_KEY + '_drawings', JSON.stringify(drawings));
       localStorage.setItem(STORAGE_KEY + '_workspaces', JSON.stringify(workspaces));
       localStorage.setItem(STORAGE_KEY + '_active_ws', activeWorkspaceId);
       setLastSavedTimestamp(Date.now());
@@ -493,6 +503,46 @@ export function useBoardStore() {
             coverColor: '#d1989e',
             icon: 'emblem',
             tags: [],
+          },
+        };
+      } else if (type === 'text') {
+        newCard = {
+          id: newId,
+          type: 'text',
+          title: 'Texto',
+          rootBoardId: activeWorkspaceId,
+          parentBoardId: activeBoardId,
+          x: Math.round(spawnX),
+          y: Math.round(spawnY),
+          width: 320,
+          height: 80,
+          color: 'default',
+          zIndex: 20,
+          status: 'in_progress',
+          textData: {
+            text: 'Novo Título',
+            fontSize: 'h1',
+            color: '#f8fafc',
+          },
+        };
+      } else if (type === 'sticky') {
+        newCard = {
+          id: newId,
+          type: 'sticky',
+          title: 'Post-it',
+          rootBoardId: activeWorkspaceId,
+          parentBoardId: activeBoardId,
+          x: Math.round(spawnX),
+          y: Math.round(spawnY),
+          width: 210,
+          height: 210,
+          color: 'amber',
+          zIndex: 20,
+          status: 'in_progress',
+          stickyData: {
+            text: '',
+            color: 'yellow',
+            fontSize: 'normal',
           },
         };
       } else {
@@ -1091,6 +1141,109 @@ export function useBoardStore() {
     );
   }, [cards, selectedCardIds, pushHistory]);
 
+  // Assistant: Precise Alignment & Distribution
+  const alignSelectedCards = useCallback(
+    (alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom' | 'distribute-h' | 'distribute-v') => {
+      if (selectedCardIds.length < 2) return;
+      pushHistory();
+      sound.playClick();
+
+      setCards((prev) => {
+        const targetCards = prev.filter((c) => selectedCardIds.includes(c.id));
+        if (targetCards.length < 2) return prev;
+
+        if (alignment === 'left') {
+          const minX = Math.min(...targetCards.map((c) => c.x));
+          return prev.map((c) => (selectedCardIds.includes(c.id) ? { ...c, x: minX } : c));
+        }
+        if (alignment === 'right') {
+          const maxRight = Math.max(...targetCards.map((c) => c.x + c.width));
+          return prev.map((c) => (selectedCardIds.includes(c.id) ? { ...c, x: maxRight - c.width } : c));
+        }
+        if (alignment === 'center-h') {
+          const minX = Math.min(...targetCards.map((c) => c.x));
+          const maxRight = Math.max(...targetCards.map((c) => c.x + c.width));
+          const midX = (minX + maxRight) / 2;
+          return prev.map((c) => (selectedCardIds.includes(c.id) ? { ...c, x: Math.round(midX - c.width / 2) } : c));
+        }
+        if (alignment === 'top') {
+          const minY = Math.min(...targetCards.map((c) => c.y));
+          return prev.map((c) => (selectedCardIds.includes(c.id) ? { ...c, y: minY } : c));
+        }
+        if (alignment === 'bottom') {
+          const maxBottom = Math.max(...targetCards.map((c) => c.y + c.height));
+          return prev.map((c) => (selectedCardIds.includes(c.id) ? { ...c, y: maxBottom - c.height } : c));
+        }
+        if (alignment === 'center-v') {
+          const minY = Math.min(...targetCards.map((c) => c.y));
+          const maxBottom = Math.max(...targetCards.map((c) => c.y + c.height));
+          const midY = (minY + maxBottom) / 2;
+          return prev.map((c) => (selectedCardIds.includes(c.id) ? { ...c, y: Math.round(midY - c.height / 2) } : c));
+        }
+        if (alignment === 'distribute-h') {
+          const sorted = [...targetCards].sort((a, b) => a.x - b.x);
+          const totalCardsWidth = sorted.reduce((acc, c) => acc + c.width, 0);
+          const minX = sorted[0].x;
+          const maxX = sorted[sorted.length - 1].x + sorted[sorted.length - 1].width;
+          const totalGap = maxX - minX - totalCardsWidth;
+          const gap = totalGap / (sorted.length - 1);
+          let currentX = minX;
+          const newPosMap = new Map<string, number>();
+          sorted.forEach((c) => {
+            newPosMap.set(c.id, Math.round(currentX));
+            currentX += c.width + gap;
+          });
+          return prev.map((c) => (newPosMap.has(c.id) ? { ...c, x: newPosMap.get(c.id)! } : c));
+        }
+        if (alignment === 'distribute-v') {
+          const sorted = [...targetCards].sort((a, b) => a.y - b.y);
+          const totalCardsHeight = sorted.reduce((acc, c) => acc + c.height, 0);
+          const minY = sorted[0].y;
+          const maxY = sorted[sorted.length - 1].y + sorted[sorted.length - 1].height;
+          const totalGap = maxY - minY - totalCardsHeight;
+          const gap = totalGap / (sorted.length - 1);
+          let currentY = minY;
+          const newPosMap = new Map<string, number>();
+          sorted.forEach((c) => {
+            newPosMap.set(c.id, Math.round(currentY));
+            currentY += c.height + gap;
+          });
+          return prev.map((c) => (newPosMap.has(c.id) ? { ...c, y: newPosMap.get(c.id)! } : c));
+        }
+        return prev;
+      });
+    },
+    [selectedCardIds, pushHistory]
+  );
+
+  // Freehand Drawings Actions
+  const addDrawing = useCallback(
+    (stroke: DrawingStroke) => {
+      const fullStroke: DrawingStroke = {
+        ...stroke,
+        rootBoardId: activeWorkspaceId,
+        parentBoardId: activeBoardId,
+      };
+      setDrawings((prev) => [...prev, fullStroke]);
+    },
+    [activeWorkspaceId, activeBoardId]
+  );
+
+  const deleteDrawing = useCallback((id: string) => {
+    setDrawings((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  const clearDrawings = useCallback(() => {
+    sound.playDelete();
+    setDrawings((prev) =>
+      prev.filter((d) => {
+        const matchesWs = !d.rootBoardId || d.rootBoardId === activeWorkspaceId;
+        const matchesBoard = (d.parentBoardId || 'root') === activeBoardId;
+        return !(matchesWs && matchesBoard);
+      })
+    );
+  }, [activeWorkspaceId, activeBoardId]);
+
   // Assistant: Group selected in new zone
   const groupSelectedIntoZone = useCallback(() => {
     if (selectedCardIds.length === 0) return;
@@ -1601,6 +1754,12 @@ export function useBoardStore() {
     return matchesWs && matchesBoard;
   });
 
+  const currentDrawings = drawings.filter((d) => {
+    const matchesWs = !d.rootBoardId || d.rootBoardId === activeWorkspaceId;
+    const matchesBoard = (d.parentBoardId || 'root') === activeBoardId;
+    return matchesWs && matchesBoard;
+  });
+
   return {
     // Auth & Cloud
     user,
@@ -1624,6 +1783,8 @@ export function useBoardStore() {
     currentConnections,
     zones,
     currentZones,
+    drawings,
+    currentDrawings,
     activeBoardId,
     boardBreadcrumbs,
     viewport,
@@ -1687,7 +1848,12 @@ export function useBoardStore() {
     selectZone,
     clearSelection,
     alignSelectedCardsInGrid,
+    alignSelectedCards,
     groupSelectedIntoZone,
+    // Freehand Drawings
+    addDrawing,
+    deleteDrawing,
+    clearDrawings,
     // History
     undo,
     redo,

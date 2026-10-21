@@ -16,8 +16,10 @@ import {
   Folder,
   Share2,
   LogIn,
+  Camera,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
+import { exportBoardAsPng } from '../../utils/exportImage';
 
 interface TopHeaderProps {
   store: BoardStore;
@@ -210,6 +212,25 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
         {/* Board Options */}
         <div className="flex items-center gap-1 p-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl">
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              const activeWs = store.workspaces.find((w) => w.id === store.activeWorkspaceId);
+              exportBoardAsPng({
+                workspaceTitle: activeWs?.title || 'Quadro',
+                cards: store.currentCards,
+                connections: store.currentConnections,
+                zones: store.currentZones,
+                drawings: store.currentDrawings || [],
+              });
+            }}
+            title="Exportar Imagem PNG do Quadro (Screenshot em Alta Resolução)"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-emerald-400 transition-colors"
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+
           <button
             type="button"
             onClick={onOpenExportImport}

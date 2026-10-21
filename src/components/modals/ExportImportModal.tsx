@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { BoardStore } from '../../stores/useBoardStore';
-import { X, Download, Upload, RotateCcw, Check, AlertCircle } from 'lucide-react';
+import { X, Download, Upload, RotateCcw, Check, AlertCircle, Camera } from 'lucide-react';
 import { sound } from '../../utils/sound';
+import { exportBoardAsPng } from '../../utils/exportImage';
 
 interface ExportImportModalProps {
   store: BoardStore;
@@ -25,6 +26,20 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
     sound.playClick();
     exportBoard();
     setSuccessMsg('Arquivo JSON baixado com sucesso!');
+    setTimeout(() => setSuccessMsg(null), 3000);
+  };
+
+  const handleExportPng = () => {
+    sound.playClick();
+    const activeWs = store.workspaces.find((w) => w.id === store.activeWorkspaceId);
+    exportBoardAsPng({
+      workspaceTitle: activeWs?.title || 'Quadro',
+      cards: store.currentCards,
+      connections: store.currentConnections,
+      zones: store.currentZones,
+      drawings: store.currentDrawings || [],
+    });
+    setSuccessMsg('Imagem PNG exportada com sucesso!');
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
@@ -83,16 +98,26 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
           <div className="space-y-2">
             <h3 className="font-semibold text-neutral-200">Exportar Backup</h3>
             <p className="text-neutral-400 text-[11px]">
-              Baixe um arquivo JSON contendo todos os cartões, coordenadas do canvas, conexões ativas e zonas delimitadoras.
+              Baixe um arquivo JSON com todas as coordenadas e dados do quadro, ou gere uma imagem PNG em alta definição.
             </p>
-            <button
-              type="button"
-              onClick={handleExport}
-              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium flex items-center justify-center gap-2 transition-colors shadow-md shadow-indigo-600/30"
-            >
-              <Download className="w-4 h-4" />
-              <span>Baixar Arquivo JSON</span>
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={handleExport}
+                className="py-2.5 px-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-medium flex items-center justify-center gap-2 transition-colors border border-neutral-700"
+              >
+                <Download className="w-4 h-4 text-sky-400" />
+                <span>Backup JSON</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportPng}
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium flex items-center justify-center gap-2 transition-colors shadow-md shadow-emerald-600/25"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Salvar Imagem PNG</span>
+              </button>
+            </div>
           </div>
 
           {/* Import section */}

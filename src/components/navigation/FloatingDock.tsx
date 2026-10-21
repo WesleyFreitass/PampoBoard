@@ -3,7 +3,10 @@ import { BoardStore } from '../../stores/useBoardStore';
 import {
   MousePointer,
   Hand,
+  PenTool,
   StickyNote,
+  Type,
+  FileText,
   CheckSquare,
   Image as ImageIcon,
   Globe,
@@ -43,7 +46,7 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
       {/* Floating Toolbar Dock */}
       <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-neutral-900/90 dark:bg-neutral-900/90 backdrop-blur-2xl border border-neutral-700/80 shadow-2xl shadow-black/60">
-        {/* Navigation Tools */}
+        {/* Navigation & Canvas Interaction Tools */}
         <div className="flex items-center gap-1 pr-1.5 border-r border-neutral-700/60">
           <button
             type="button"
@@ -76,85 +79,131 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
           >
             <Hand className="w-4 h-4" />
           </button>
+
+          <button
+            type="button"
+            title="Desenho Livre / Caneta (D)"
+            onClick={() => {
+              setActiveTool(activeTool === 'draw' ? 'select' : 'draw');
+              sound.playClick();
+            }}
+            className={`p-2 rounded-xl transition-all ${
+              activeTool === 'draw'
+                ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+            }`}
+          >
+            <PenTool className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Card Creation Shortcuts */}
         <div className="flex items-center gap-1 px-1">
+          {/* Free Text / Heading */}
+          <button
+            type="button"
+            onClick={() => addCard('text')}
+            title="Criar Texto Livre / Título no Canvas (T)"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-sky-500/15 transition-all active:scale-95"
+          >
+            <Type className="w-4 h-4 text-sky-400" />
+            <span className="hidden sm:inline">Texto</span>
+          </button>
+
+          {/* Sticky Note */}
+          <button
+            type="button"
+            onClick={() => addCard('sticky')}
+            title="Criar Post-it / Lembrete Rápido (P)"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-yellow-500/15 transition-all active:scale-95"
+          >
+            <StickyNote className="w-4 h-4 text-amber-300" />
+            <span className="hidden sm:inline">Post-it</span>
+          </button>
+
+          {/* Note */}
           <button
             type="button"
             onClick={() => addCard('note')}
-            title="Criar Nota de Texto (N)"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            title="Criar Nota de Texto & Código (N)"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-purple-500/15 transition-all active:scale-95"
           >
-            <StickyNote className="w-4 h-4 text-purple-400" />
+            <FileText className="w-4 h-4 text-purple-400" />
             <span className="hidden sm:inline">Nota</span>
           </button>
 
+          {/* Checklist */}
           <button
             type="button"
             onClick={() => addCard('checklist')}
             title="Criar Lista de Tarefas / Checklist (C)"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-emerald-500/15 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-emerald-500/15 transition-all active:scale-95"
           >
             <CheckSquare className="w-4 h-4 text-emerald-400" />
             <span className="hidden sm:inline">Checklist</span>
           </button>
 
+          {/* Media / Image */}
           <button
             type="button"
             onClick={() => addCard('media')}
             title="Criar Card de Imagem (I)"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-emerald-500/15 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-emerald-500/15 transition-all active:scale-95"
           >
             <ImageIcon className="w-4 h-4 text-emerald-400" />
             <span className="hidden sm:inline">Imagem</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => addCard('link')}
-            title="Criar Smart Link & Monitor Web (U)"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-cyan-500/15 transition-all active:scale-95"
-          >
-            <Globe className="w-4 h-4 text-cyan-400" />
-            <span className="hidden sm:inline">Link Monitor</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addCard('table')}
-            title="Criar Tabela Dinâmica com Colunas Editáveis"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-slate-500/15 transition-all active:scale-95"
-          >
-            <TableIcon className="w-4 h-4 text-sky-400" />
-            <span className="hidden sm:inline">Tabela</span>
-          </button>
-
+          {/* Column */}
           <button
             type="button"
             onClick={() => addCard('column')}
-            title="Criar Coluna / Pilha de Itens Estilo Milanote"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-purple-500/15 transition-all active:scale-95"
+            title="Criar Coluna de Itens Estilo Milanote"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-pink-500/15 transition-all active:scale-95"
           >
             <Columns3 className="w-4 h-4 text-pink-400" />
             <span className="hidden sm:inline">Coluna</span>
           </button>
 
+          {/* Board */}
           <button
             type="button"
             onClick={() => addCard('board')}
             title="Criar Sub-Quadro / Novo Quadro"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-rose-500/15 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-rose-500/15 transition-all active:scale-95"
           >
             <FolderOpen className="w-4 h-4 text-rose-400" />
             <span className="hidden sm:inline">Quadro</span>
           </button>
 
+          {/* Table */}
+          <button
+            type="button"
+            onClick={() => addCard('table')}
+            title="Criar Tabela Dinâmica"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-slate-500/15 transition-all active:scale-95"
+          >
+            <TableIcon className="w-4 h-4 text-sky-400" />
+            <span className="hidden sm:inline">Tabela</span>
+          </button>
+
+          {/* Link */}
+          <button
+            type="button"
+            onClick={() => addCard('link')}
+            title="Criar Smart Link & Monitor Web"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-cyan-500/15 transition-all active:scale-95"
+          >
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">Link</span>
+          </button>
+
+          {/* Zone */}
           <button
             type="button"
             onClick={() => addZone()}
             title="Criar Zona Delimitadora (Z)"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-purple-500/15 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-purple-500/15 transition-all active:scale-95"
           >
             <Layers className="w-4 h-4 text-indigo-400" />
             <span className="hidden sm:inline">Zona</span>
@@ -181,11 +230,11 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
 
           <button
             type="button"
-            title={`Áudio e Feedback Tátil: ${soundEnabled ? 'Ativado' : 'Silenciado'}`}
+            title={soundEnabled ? 'Sons de interface: Ativados' : 'Sons de interface: Mudos'}
             onClick={toggleSound}
             className={`p-2 rounded-xl transition-all ${
               soundEnabled
-                ? 'text-neutral-300 hover:text-white'
+                ? 'text-neutral-400 hover:text-white'
                 : 'text-neutral-600 hover:text-neutral-400'
             }`}
           >

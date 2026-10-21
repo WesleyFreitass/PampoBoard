@@ -183,6 +183,35 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
                 </circle>
               )}
 
+              {/* Optional Connection Label Pill */}
+              {conn.label && (
+                <g
+                  transform={`translate(${midPoint.x}, ${midPoint.y - 18})`}
+                  className="pointer-events-auto cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectConnection(conn.id);
+                  }}
+                >
+                  <rect
+                    x={-(conn.label.length * 3.6 + 10)}
+                    y="-9"
+                    width={conn.label.length * 7.2 + 20}
+                    height="18"
+                    rx="9"
+                    className="fill-neutral-900/95 stroke-neutral-700 hover:stroke-indigo-400 drop-shadow-md"
+                    strokeWidth="1"
+                  />
+                  <text
+                    textAnchor="middle"
+                    dy="3.5"
+                    className="fill-neutral-200 text-[10px] font-medium font-sans select-none"
+                  >
+                    {conn.label}
+                  </text>
+                </g>
+              )}
+
               {/* Midpoint interactive Delete Button */}
               {(isSelected || isHovered) && (
                 <g
