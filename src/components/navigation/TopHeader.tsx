@@ -1,9 +1,6 @@
 import React from 'react';
 import { BoardStore } from '../../stores/useBoardStore';
 import {
-  LayoutDashboard,
-  Kanban,
-  GitBranch,
   Search,
   Undo2,
   Redo2,
@@ -40,8 +37,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   leftOffset = 248,
 }) => {
   const {
-    viewMode,
-    setViewMode,
     cards,
     connections,
     viewport,
@@ -98,57 +93,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </div>
           </div>
         )}
-
-        {/* View Mode 1-Click Switcher */}
-        <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 shadow-xl">
-          <button
-            type="button"
-            onClick={() => {
-              setViewMode('free');
-              sound.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === 'free'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Canvas Livre</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setViewMode('kanban');
-              sound.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === 'kanban'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            <Kanban className="w-3.5 h-3.5" />
-            <span>Modo Kanban</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setViewMode('graph');
-              sound.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === 'graph'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            <GitBranch className="w-3.5 h-3.5" />
-            <span>Modo Grafo</span>
-          </button>
-        </div>
       </div>
 
       {/* Right Action Tools: Search, Zoom, History, Theme */}

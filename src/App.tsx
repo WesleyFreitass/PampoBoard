@@ -10,8 +10,6 @@ import { TrashDrawer } from './components/navigation/TrashDrawer';
 import { HistoryDrawer } from './components/navigation/HistoryDrawer';
 import { SelectionBar } from './components/navigation/SelectionBar';
 import { MiniMap } from './components/navigation/MiniMap';
-import { KanbanView } from './components/views/KanbanView';
-import { GraphView } from './components/views/GraphView';
 import { CommandPalette } from './components/modals/CommandPalette';
 import { SummaryModal } from './components/modals/SummaryModal';
 import { ExportImportModal } from './components/modals/ExportImportModal';
@@ -200,10 +198,6 @@ export function App() {
 
       {/* Canvas Radar Minimap */}
       <MiniMap store={store} />
-
-      {/* View Mode Overlays */}
-      {store.viewMode === 'kanban' && <KanbanView store={store} />}
-      {store.viewMode === 'graph' && <GraphView store={store} />}
 
       {/* Modals */}
       <CommandPalette

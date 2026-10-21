@@ -8,9 +8,6 @@ import {
   Image as ImageIcon,
   Globe,
   ArrowRight,
-  LayoutDashboard,
-  Kanban,
-  GitBranch,
   Table as TableIcon,
   Columns3,
   FolderOpen,
@@ -24,7 +21,7 @@ interface CommandPaletteProps {
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ store, isOpen, onClose }) => {
-  const { cards, focusCard, setViewMode, addCard } = store;
+  const { cards, focusCard, addCard } = store;
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -57,7 +54,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ store, isOpen, o
 
   const handleSelectCard = (cardId: string) => {
     sound.playClick();
-    setViewMode('free');
     focusCard(cardId);
     onClose();
   };
@@ -208,28 +204,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ store, isOpen, o
               >
                 <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
                 <span>+ Criar Sub-Board</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode('kanban');
-                  onClose();
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-300 hover:bg-neutral-800 text-left"
-              >
-                <Kanban className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Modo Kanban</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode('graph');
-                  onClose();
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-neutral-300 hover:bg-neutral-800 text-left"
-              >
-                <GitBranch className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Modo Grafo</span>
               </button>
             </div>
           </div>

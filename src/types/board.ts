@@ -188,7 +188,7 @@ export interface Zone {
   parentBoardId?: string;
 }
 
-export type ViewMode = 'free' | 'kanban' | 'graph';
+export type ViewMode = 'free';
 
 export interface ViewportTransform {
   x: number;
