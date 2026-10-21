@@ -11,7 +11,7 @@ import { SubBoardCard } from '../cards/SubBoardCard';
 import { ZoneComponent } from './ZoneComponent';
 import { ConnectionLayer } from './ConnectionLayer';
 import { findSnapPort, findSnapCardOrPort, getOptimalPortBetweenCards, getPortCoordinates } from '../../utils/bezier';
-import { PortPosition, Position, BoardCard } from '../../types/board';
+import { PortPosition, Position, BoardCard, ColumnItem } from '../../types/board';
 import { sound } from '../../utils/sound';
 import { CheckCircle2, Image as ImageIcon } from 'lucide-react';
 
@@ -70,6 +70,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [mouseCanvasPos, setMouseCanvasPos] = useState<Position | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null);
 
   // Marquee selection state
   const [marqueeBox, setMarqueeBox] = useState<{
@@ -340,6 +341,57 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     }
   };
 
+  // Milanote Column: Extract an item from a column back into a free-floating board card
+  const handleExtractItemFromColumn = (columnCard: BoardCard, item: ColumnItem) => {
+    sound.playConnect();
+    const spawnX = columnCard.x + columnCard.width + 32;
+    const spawnY = columnCard.y;
+
+    if (item.type === 'table') {
+      const newCard = addCard('table', { x: spawnX, y: spawnY }, columnCard.color);
+      if (newCard) {
+        updateCard(newCard.id, {
+          title: item.title || 'Tabela',
+          tableData: item.tableData,
+        });
+      }
+    } else if (item.type === 'link') {
+      const newCard = addCard('link', { x: spawnX, y: spawnY }, columnCard.color);
+      if (newCard) {
+        updateCard(newCard.id, {
+          title: item.title || 'Link Web',
+          linkData: item.linkData,
+        });
+      }
+    } else {
+      // note, checklist, or task
+      const newCard = addCard('note', { x: spawnX, y: spawnY }, columnCard.color);
+      if (newCard) {
+        updateCard(newCard.id, {
+          title: item.title || (item.text ? item.text.slice(0, 30) : 'Nota'),
+          noteData: {
+            title: item.title || 'Nota',
+            body: item.body || item.text || '',
+            checklist: item.checklist || (item.text ? [{ id: `chk-${Date.now()}`, text: item.text, completed: !!item.done }] : []),
+            tags: item.tag ? [item.tag] : [],
+          },
+        });
+      }
+    }
+
+    // Remove extracted item from the column
+    const currentItems = columnCard.columnData?.items || [];
+    updateCard(columnCard.id, {
+      columnData: {
+        title: columnCard.columnData?.title || columnCard.title,
+        items: currentItems.filter((i) => i.id !== item.id),
+      },
+    });
+
+    setToastMsg(`Item "${item.title || item.text || 'Item'}" extraído para o quadro!`);
+    setTimeout(() => setToastMsg(null), 2500);
+  };
+
   // Dragging Cards
   const handleCardDragStart = (cardId: string, e: React.PointerEvent) => {
     e.stopPropagation();
@@ -398,9 +450,100 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           }
         }
       });
+
+      // Check if dragging single card over a column
+      if (cardsToMove.length === 1) {
+        const movedId = cardsToMove[0];
+        const cardObj = cards.find((c) => c.id === movedId);
+        if (cardObj && cardObj.type !== 'column') {
+          const orig = draggingCardRef.current!.initialCardPositions.find((o) => o.id === cardObj.id);
+          const delta = deltas.find((d) => d.id === cardObj.id);
+          const currentX = (orig?.x ?? cardObj.x) + (delta?.dx ?? 0);
+          const currentY = (orig?.y ?? cardObj.y) + (delta?.dy ?? 0);
+          const cx = currentX + cardObj.width / 2;
+          const cy = currentY + 30;
+
+          const targetCol = cards.find(
+            (c) =>
+              c.type === 'column' &&
+              c.id !== movedId &&
+              cx >= c.x &&
+              cx <= c.x + c.width &&
+              cy >= c.y &&
+              cy <= c.y + c.height
+          );
+          setHoveredColumnId(targetCol ? targetCol.id : null);
+        }
+      }
     };
 
     const handlePointerUp = () => {
+      if (draggingCardRef.current && cardsToMove.length === 1) {
+        const draggedCardId = cardsToMove[0];
+        const draggedCard = cards.find((c) => c.id === draggedCardId);
+
+        if (draggedCard && draggedCard.type !== 'column') {
+          const cx = draggedCard.x + draggedCard.width / 2;
+          const cy = draggedCard.y + 30;
+
+          const targetCol = cards.find(
+            (c) =>
+              c.type === 'column' &&
+              c.id !== draggedCardId &&
+              cx >= c.x &&
+              cx <= c.x + c.width &&
+              cy >= c.y &&
+              cy <= c.y + c.height
+          );
+
+          if (targetCol) {
+            let newItem: ColumnItem;
+            const ts = Date.now();
+            if (draggedCard.type === 'table') {
+              newItem = {
+                id: `ci-${ts}`,
+                type: 'table',
+                title: draggedCard.title || 'Tabela',
+                tableData: draggedCard.tableData,
+              };
+            } else if (draggedCard.type === 'link') {
+              newItem = {
+                id: `ci-${ts}`,
+                type: 'link',
+                title: draggedCard.title || 'Link Web',
+                linkData: draggedCard.linkData,
+              };
+            } else {
+              const hasChecklist =
+                draggedCard.noteData?.checklist &&
+                draggedCard.noteData.checklist.length > 0;
+              newItem = {
+                id: `ci-${ts}`,
+                type: hasChecklist ? 'checklist' : 'note',
+                title: draggedCard.title || 'Nota',
+                body: draggedCard.noteData?.body || '',
+                checklist: draggedCard.noteData?.checklist || [],
+                tag: draggedCard.noteData?.tags?.[0],
+              };
+            }
+
+            const currentItems = targetCol.columnData?.items || [];
+            updateCard(targetCol.id, {
+              columnData: {
+                title: targetCol.columnData?.title || targetCol.title,
+                items: [...currentItems, newItem],
+              },
+            });
+
+            deleteCard(draggedCard.id);
+            setToastMsg(`Card colocado na coluna "${targetCol.title}"!`);
+            setTimeout(() => setToastMsg(null), 2500);
+            sound.playConnect();
+          }
+        }
+      }
+
+      setHoveredColumnId(null);
       draggingCardRef.current = null;
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
@@ -646,6 +789,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 <ColumnCard
                   card={card}
                   onUpdate={(updates) => updateCard(card.id, updates)}
+                  onExtractToBoard={(item) => handleExtractItemFromColumn(card, item)}
+                  isDropTarget={hoveredColumnId === card.id}
                 />
               )}
 

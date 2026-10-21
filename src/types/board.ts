@@ -100,10 +100,18 @@ export interface TableCardData {
   rows: TableRow[];
 }
 
+export type ColumnItemType = 'note' | 'checklist' | 'table' | 'link' | 'task';
+
 export interface ColumnItem {
   id: string;
-  text: string;
-  done: boolean;
+  type?: ColumnItemType;
+  title?: string;
+  text?: string;
+  done?: boolean;
+  body?: string;
+  checklist?: NoteChecklistItem[];
+  tableData?: TableCardData;
+  linkData?: SmartLinkData;
   tag?: string;
 }
 

@@ -384,20 +384,17 @@ export function useBoardStore() {
           zIndex: 20,
           status: 'backlog',
           noteData: {
-            title: 'Nova Ideia',
-            body: 'Descreva sua ideia ou conecte com outro card vivo.',
-            checklist: [
-              { id: '1', text: 'Definir escopo principal', completed: false },
-              { id: '2', text: 'Testar integração', completed: false },
-            ],
-            tags: ['#ideia'],
+            title: 'Nota',
+            body: '',
+            checklist: [],
+            tags: [],
           },
         };
       } else if (type === 'live') {
         newCard = {
           id: newId,
           type: 'live',
-          title: 'Card Vivo Reativo',
+          title: 'Card Vivo',
           rootBoardId: activeWorkspaceId,
           parentBoardId: activeBoardId,
           x: Math.round(spawnX),
@@ -408,13 +405,13 @@ export function useBoardStore() {
           zIndex: 20,
           status: 'backlog',
           liveData: {
-            title: 'Card Vivo Reativo',
+            title: 'Card Vivo',
             mode: 'trigger',
-            value: 50,
+            value: 0,
             isActive: true,
             status: 'idle',
-            unit: 'Hz',
-            actionLog: ['Inicializado e pronto'],
+            unit: '%',
+            actionLog: [],
           },
         };
       } else if (type === 'media') {
@@ -438,14 +435,14 @@ export function useBoardStore() {
             wireframe: false,
             modelColor: '#8b5cf6',
             autoRotate: true,
-            caption: 'Gire livremente com o cursor do mouse.',
+            caption: '',
           },
         };
       } else if (type === 'table') {
         newCard = {
           id: newId,
           type: 'table',
-          title: 'Tabela de Dados',
+          title: 'Tabela',
           rootBoardId: activeWorkspaceId,
           parentBoardId: activeBoardId,
           x: Math.round(spawnX),
@@ -456,50 +453,38 @@ export function useBoardStore() {
           zIndex: 20,
           status: 'in_progress',
           tableData: {
-            title: 'Tabela de Dados',
+            title: 'Tabela',
             columns: [
-              { id: 'col-1', header: 'Item / Tarefa', type: 'text', width: 170 },
-              { id: 'col-2', header: 'Responsável', type: 'text', width: 110 },
-              { id: 'col-3', header: 'Status', type: 'status', width: 100 },
-              { id: 'col-4', header: 'Horas', type: 'number', width: 70 },
+              { id: 'col-1', header: 'Coluna 1', type: 'text', width: 160 },
+              { id: 'col-2', header: 'Coluna 2', type: 'text', width: 160 },
             ],
-            rows: [
-              { id: 'row-1', cells: { 'col-1': 'Desenhar Wireframes', 'col-2': 'Design Lead', 'col-3': 'Concluído', 'col-4': 6 } },
-              { id: 'row-2', cells: { 'col-1': 'Integrar Three.js e WebGL', 'col-2': 'Frontend', 'col-3': 'Ativo', 'col-4': 8 } },
-              { id: 'row-3', cells: { 'col-1': 'Suporte a Prints via Ctrl+V', 'col-2': 'Frontend', 'col-3': 'Concluído', 'col-4': 2 } },
-              { id: 'row-4', cells: { 'col-1': 'Testar Conexões Bézier', 'col-2': 'QA', 'col-3': 'Pendente', 'col-4': 4 } },
-            ],
+            rows: [],
           },
         };
       } else if (type === 'column') {
         newCard = {
           id: newId,
           type: 'column',
-          title: 'Coluna de Ideias & Tarefas',
+          title: 'Coluna',
           rootBoardId: activeWorkspaceId,
           parentBoardId: activeBoardId,
           x: Math.round(spawnX),
           y: Math.round(spawnY),
-          width: 310,
+          width: 330,
           height: 380,
           color: 'lavender',
           zIndex: 20,
           status: 'in_progress',
           columnData: {
-            title: 'Coluna de Tarefas',
-            items: [
-              { id: 'ci-1', text: 'Estruturação do Canvas Infinito', done: true, tag: 'Sprint 1' },
-              { id: 'ci-2', text: 'Colar prints da tela com Ctrl+V', done: true, tag: 'UX' },
-              { id: 'ci-3', text: 'Tabelas dinâmicas com colunas', done: true, tag: 'Dados' },
-              { id: 'ci-4', text: 'Sub-quadros aninhados de projeto', done: false, tag: 'Milanote' },
-            ],
+            title: 'Coluna',
+            items: [],
           },
         };
       } else if (type === 'board') {
         newCard = {
           id: newId,
           type: 'board',
-          title: 'Sub-Quadro de Projeto',
+          title: 'Sub-Quadro',
           rootBoardId: activeWorkspaceId,
           parentBoardId: activeBoardId,
           x: Math.round(spawnX),
@@ -510,12 +495,12 @@ export function useBoardStore() {
           zIndex: 20,
           status: 'backlog',
           boardData: {
-            title: 'Sub-Quadro de Projeto',
-            description: 'Quadro aninhado no estilo Milanote para organizar fases internas e referências dedicadas.',
+            title: 'Sub-Quadro',
+            description: '',
             itemCount: 0,
             coverColor: '#10b981',
             icon: 'folder',
-            tags: ['#sub-board', '#projeto'],
+            tags: [],
           },
         };
       } else {
@@ -523,7 +508,7 @@ export function useBoardStore() {
         newCard = {
           id: newId,
           type: 'link',
-          title: 'Novo Monitor Web',
+          title: 'Link Web',
           rootBoardId: activeWorkspaceId,
           parentBoardId: activeBoardId,
           x: Math.round(spawnX),
@@ -534,12 +519,12 @@ export function useBoardStore() {
           zIndex: 20,
           status: 'backlog',
           linkData: {
-            url: 'https://example.com/api',
-            title: 'Serviço Conectado',
-            description: 'Monitoramento de integridade e telemetria de latência.',
+            url: '',
+            title: 'Link Web',
+            description: '',
             status: 'online',
-            latencyMs: 24,
-            lastChecked: 'Agora mesmo',
+            latencyMs: 0,
+            lastChecked: '',
             sslSecure: true,
           },
         };

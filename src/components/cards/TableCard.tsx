@@ -12,16 +12,10 @@ export const TableCard: React.FC<TableCardProps> = ({ card, onUpdate }) => {
   const tableData: TableCardData = card.tableData || {
     title: card.title,
     columns: [
-      { id: 'c1', header: 'Item / Tarefa', type: 'text', width: 170 },
-      { id: 'c2', header: 'Responsável', type: 'text', width: 110 },
-      { id: 'c3', header: 'Status', type: 'status', width: 100 },
-      { id: 'c4', header: 'Horas', type: 'number', width: 70 },
+      { id: 'c1', header: 'Coluna 1', type: 'text', width: 160 },
+      { id: 'c2', header: 'Coluna 2', type: 'text', width: 160 },
     ],
-    rows: [
-      { id: 'r1', cells: { c1: 'Estruturação do Canvas', c2: 'Wesley', c3: 'Concluído', c4: 6 } },
-      { id: 'r2', cells: { c1: 'Colar prints via Ctrl+V', c2: 'Wesley', c3: 'Concluído', c4: 2 } },
-      { id: 'r3', cells: { c1: 'Tabela Dinâmica', c2: 'Lead Designer', c3: 'Ativo', c4: 4 } },
-    ],
+    rows: [],
   };
 
   const [newColName, setNewColName] = useState('');

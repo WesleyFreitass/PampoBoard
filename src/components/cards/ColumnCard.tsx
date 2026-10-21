@@ -1,160 +1,567 @@
 import React, { useState } from 'react';
-import { BoardCard, ColumnCardData, ColumnItem } from '../../types/board';
-import { Plus, CheckCircle2, Circle, Trash2, Tag, Layers } from 'lucide-react';
+import { BoardCard, ColumnCardData, ColumnItem, NoteChecklistItem } from '../../types/board';
+import {
+  Plus,
+  Trash2,
+  Layers,
+  FileText,
+  CheckSquare,
+  Square,
+  Table as TableIcon,
+  Globe,
+  ArrowUpRight,
+  ChevronUp,
+  ChevronDown,
+  Circle,
+  CheckCircle2,
+  ExternalLink,
+} from 'lucide-react';
 import { sound } from '../../utils/sound';
 
 interface ColumnCardProps {
   card: BoardCard;
   onUpdate: (updates: Partial<BoardCard>) => void;
+  onExtractToBoard?: (item: ColumnItem) => void;
+  isDropTarget?: boolean;
 }
 
-export const ColumnCard: React.FC<ColumnCardProps> = ({ card, onUpdate }) => {
+export const ColumnCard: React.FC<ColumnCardProps> = ({
+  card,
+  onUpdate,
+  onExtractToBoard,
+  isDropTarget = false,
+}) => {
   const columnData: ColumnCardData = card.columnData || {
     title: card.title,
-    items: [
-      { id: '1', text: 'Pesquisa de referências visuais', done: true, tag: 'Design' },
-      { id: '2', text: 'Suporte a prints com Ctrl+V', done: true, tag: 'UX' },
-      { id: '3', text: 'Tabelas dinâmicas com colunas', done: true, tag: 'Core' },
-      { id: '4', text: 'Sub-quadros de projeto (Boards)', done: false, tag: 'Milanote' },
-    ],
+    items: [],
   };
 
-  const [newItemText, setNewItemText] = useState('');
-  const [newItemTag, setNewItemTag] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'add'>('all');
 
-  const toggleItem = (itemId: string) => {
-    sound.playClick();
-    const updated = columnData.items.map((item) =>
-      item.id === itemId ? { ...item, done: !item.done } : item
-    );
+  const updateItems = (newItems: ColumnItem[]) => {
     onUpdate({
       columnData: {
         ...columnData,
-        items: updated,
+        items: newItems,
       },
     });
+  };
+
+  const updateItem = (itemId: string, updates: Partial<ColumnItem>) => {
+    const updated = columnData.items.map((item) =>
+      item.id === itemId ? { ...item, ...updates } : item
+    );
+    updateItems(updated);
   };
 
   const deleteItem = (itemId: string) => {
     sound.playDelete();
-    onUpdate({
-      columnData: {
-        ...columnData,
-        items: columnData.items.filter((i) => i.id !== itemId),
-      },
-    });
+    updateItems(columnData.items.filter((i) => i.id !== itemId));
   };
 
-  const addItem = () => {
-    if (!newItemText.trim()) return;
+  const moveItem = (index: number, direction: 'up' | 'down') => {
+    const newItems = [...columnData.items];
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= newItems.length) return;
+    const temp = newItems[index];
+    newItems[index] = newItems[targetIdx];
+    newItems[targetIdx] = temp;
     sound.playClick();
-    const newItem: ColumnItem = {
-      id: `ci-${Date.now()}`,
-      text: newItemText.trim(),
-      done: false,
-      tag: newItemTag.trim() || undefined,
-    };
-    onUpdate({
-      columnData: {
-        ...columnData,
-        items: [...columnData.items, newItem],
-      },
-    });
-    setNewItemText('');
-    setNewItemTag('');
+    updateItems(newItems);
   };
 
-  const completedCount = columnData.items.filter((i) => i.done).length;
+  // Add specific card types inside the column
+  const addItemOfType = (type: 'note' | 'checklist' | 'table' | 'link' | 'task') => {
+    sound.playClick();
+    let newItem: ColumnItem;
+    const ts = Date.now();
+
+    if (type === 'note') {
+      newItem = {
+        id: `ci-note-${ts}`,
+        type: 'note',
+        title: 'Nota',
+        body: '',
+      };
+    } else if (type === 'checklist') {
+      newItem = {
+        id: `ci-chk-${ts}`,
+        type: 'checklist',
+        title: 'Checklist',
+        checklist: [],
+      };
+    } else if (type === 'table') {
+      newItem = {
+        id: `ci-tbl-${ts}`,
+        type: 'table',
+        title: 'Tabela',
+        tableData: {
+          title: 'Tabela',
+          columns: [
+            { id: 'c1', header: 'Item', type: 'text', width: 140 },
+            { id: 'c2', header: 'Valor', type: 'text', width: 140 },
+          ],
+          rows: [],
+        },
+      };
+    } else if (type === 'link') {
+      newItem = {
+        id: `ci-lnk-${ts}`,
+        type: 'link',
+        title: 'Link',
+        linkData: {
+          url: '',
+          title: 'Link',
+          description: '',
+          status: 'online',
+          latencyMs: 0,
+          lastChecked: '',
+          sslSecure: true,
+        },
+      };
+    } else {
+      newItem = {
+        id: `ci-tsk-${ts}`,
+        type: 'task',
+        text: '',
+        done: false,
+      };
+    }
+
+    updateItems([...columnData.items, newItem]);
+  };
+
+  // Checklist item management inside a column item
+  const addChecklistItem = (itemId: string, text: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item) return;
+    const currentList = item.checklist || [];
+    const newChk: NoteChecklistItem = {
+      id: `chk-${Date.now()}`,
+      text,
+      completed: false,
+    };
+    updateItem(itemId, { checklist: [...currentList, newChk] });
+    sound.playClick();
+  };
+
+  const toggleChecklistItem = (itemId: string, chkId: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item || !item.checklist) return;
+    const updated = item.checklist.map((c) =>
+      c.id === chkId ? { ...c, completed: !c.completed } : c
+    );
+    updateItem(itemId, { checklist: updated });
+    sound.playClick();
+  };
+
+  const deleteChecklistItem = (itemId: string, chkId: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item || !item.checklist) return;
+    const updated = item.checklist.filter((c) => c.id !== chkId);
+    updateItem(itemId, { checklist: updated });
+    sound.playDelete();
+  };
+
+  // Table row management inside a column table item
+  const addTableRow = (itemId: string) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item || !item.tableData) return;
+    const rows = item.tableData.rows || [];
+    const newRow = {
+      id: `r-${Date.now()}`,
+      cells: {},
+    };
+    updateItem(itemId, {
+      tableData: {
+        ...item.tableData,
+        rows: [...rows, newRow],
+      },
+    });
+    sound.playClick();
+  };
+
+  const updateTableCell = (
+    itemId: string,
+    rowId: string,
+    colId: string,
+    val: string
+  ) => {
+    const item = columnData.items.find((i) => i.id === itemId);
+    if (!item || !item.tableData) return;
+    const rows = item.tableData.rows.map((r) =>
+      r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: val } } : r
+    );
+    updateItem(itemId, {
+      tableData: {
+        ...item.tableData,
+        rows,
+      },
+    });
+  };
 
   return (
-    <div className="space-y-3 select-none">
-      {/* Column progress metric */}
-      <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400 pb-1 border-b border-white/5">
-        <span className="flex items-center gap-1">
+    <div
+      className={`space-y-3 transition-all ${
+        isDropTarget
+          ? 'ring-2 ring-purple-400 bg-purple-950/20 rounded-xl p-1'
+          : ''
+      }`}
+    >
+      {/* Header Metric */}
+      <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400 pb-1.5 border-b border-white/5">
+        <span className="flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5 text-purple-400" />
-          <span>Pilha de Itens</span>
+          <span>Coluna Milanote</span>
         </span>
         <span className="text-purple-300 font-semibold">
-          {completedCount}/{columnData.items.length} concluídos
+          {columnData.items.length}{' '}
+          {columnData.items.length === 1 ? 'item' : 'itens'}
         </span>
       </div>
 
-      {/* Stack of items (cards inside the column) */}
-      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-        {columnData.items.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => toggleItem(item.id)}
-            className={`p-2.5 rounded-lg border transition-all cursor-pointer group flex items-start justify-between gap-2 ${
-              item.done
-                ? 'bg-neutral-950/40 border-neutral-800/60 opacity-60'
-                : 'bg-neutral-900/90 border-neutral-700/80 hover:border-purple-500/60 shadow-sm'
-            }`}
-          >
-            <div className="flex items-start gap-2 flex-1">
-              <button
-                type="button"
-                className="mt-0.5 text-neutral-400 group-hover:text-purple-400 shrink-0"
-              >
-                {item.done ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Circle className="w-3.5 h-3.5" />
-                )}
-              </button>
-              <div>
-                <span
-                  className={`text-xs block leading-snug break-words ${
-                    item.done ? 'line-through text-neutral-500' : 'text-neutral-200'
-                  }`}
-                >
-                  {item.text}
-                </span>
-                {item.tag && (
-                  <span className="inline-block mt-1 text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                    {item.tag}
-                  </span>
-                )}
-              </div>
-            </div>
+      {/* Visual Drop Target Alert if card dragged over */}
+      {isDropTarget && (
+        <div className="p-3 rounded-lg border-2 border-dashed border-purple-400 bg-purple-500/10 text-center text-xs font-medium text-purple-200 animate-pulse">
+          Solte o card aqui para colocá-lo na coluna
+        </div>
+      )}
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteItem(item.id);
-              }}
-              title="Excluir item"
-              className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-rose-400 transition-opacity"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
+      {/* Stack of Cards Inside the Column */}
+      <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+        {columnData.items.length === 0 && !isDropTarget && (
+          <div className="p-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-neutral-400 space-y-1">
+            <p className="font-medium text-neutral-300">Coluna vazia</p>
+            <p className="text-[11px] text-neutral-500">
+              Adicione itens abaixo ou arraste qualquer card do quadro e solte aqui dentro.
+            </p>
           </div>
-        ))}
+        )}
+
+        {columnData.items.map((item, idx) => {
+          const itemType = item.type || (item.text !== undefined ? 'task' : 'note');
+
+          return (
+            <div
+              key={item.id}
+              className="group/item relative rounded-xl border border-neutral-700/80 bg-neutral-900/90 hover:border-purple-500/50 transition-all p-3 shadow-md space-y-2"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {/* Item Top Bar: Icon + Title + Actions */}
+              <div className="flex items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
+                  {itemType === 'note' && (
+                    <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  )}
+                  {itemType === 'checklist' && (
+                    <CheckSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  )}
+                  {itemType === 'table' && (
+                    <TableIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  )}
+                  {itemType === 'link' && (
+                    <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  )}
+                  {itemType === 'task' && (
+                    <Circle className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  )}
+
+                  {itemType !== 'task' ? (
+                    <input
+                      type="text"
+                      value={item.title || ''}
+                      onChange={(e) => updateItem(item.id, { title: e.target.value })}
+                      placeholder="Título..."
+                      className="bg-transparent border-none text-xs font-semibold text-neutral-200 focus:outline-none truncate w-full"
+                    />
+                  ) : (
+                    <span className="text-[11px] font-mono text-neutral-400">Tarefa</span>
+                  )}
+                </div>
+
+                {/* Controls: Reorder, Extract to Board, Delete */}
+                <div className="flex items-center gap-0.5 opacity-60 group-hover/item:opacity-100 transition-opacity">
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      title="Mover para cima"
+                      onClick={() => moveItem(idx, 'up')}
+                      className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white"
+                    >
+                      <ChevronUp className="w-3 h-3" />
+                    </button>
+                  )}
+                  {idx < columnData.items.length - 1 && (
+                    <button
+                      type="button"
+                      title="Mover para baixo"
+                      onClick={() => moveItem(idx, 'down')}
+                      className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {onExtractToBoard && (
+                    <button
+                      type="button"
+                      title="Extrair para o quadro livre (desacoplar da coluna)"
+                      onClick={() => onExtractToBoard(item)}
+                      className="p-1 rounded hover:bg-indigo-500/20 text-neutral-400 hover:text-indigo-300"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    title="Excluir item da coluna"
+                    onClick={() => deleteItem(item.id)}
+                    className="p-1 rounded hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Note Content Body */}
+              {itemType === 'note' && (
+                <textarea
+                  value={item.body || ''}
+                  onChange={(e) => updateItem(item.id, { body: e.target.value })}
+                  placeholder="Escreva sua anotação aqui..."
+                  rows={2}
+                  className="w-full bg-neutral-950/60 rounded-lg p-2 text-xs text-neutral-300 placeholder-neutral-500 resize-y focus:outline-none border border-white/5 leading-relaxed"
+                />
+              )}
+
+              {/* Checklist Content Body */}
+              {itemType === 'checklist' && (
+                <div className="space-y-1.5 pt-0.5">
+                  {(item.checklist || []).map((chk) => (
+                    <div
+                      key={chk.id}
+                      className="flex items-center gap-2 text-xs group/chk px-1 py-0.5 rounded hover:bg-white/5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleChecklistItem(item.id, chk.id)}
+                        className="text-neutral-400 hover:text-emerald-400 shrink-0"
+                      >
+                        {chk.completed ? (
+                          <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Square className="w-3.5 h-3.5 text-neutral-500" />
+                        )}
+                      </button>
+                      <span
+                        className={`flex-1 break-words ${
+                          chk.completed
+                            ? 'line-through text-neutral-500'
+                            : 'text-neutral-200'
+                        }`}
+                      >
+                        {chk.text}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => deleteChecklistItem(item.id, chk.id)}
+                        className="opacity-0 group-hover/chk:opacity-100 text-neutral-500 hover:text-rose-400"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <input
+                    type="text"
+                    placeholder="+ Adicionar tarefa..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                        addChecklistItem(item.id, e.currentTarget.value.trim());
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                    className="w-full bg-neutral-950/60 rounded-md px-2 py-1 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none border border-white/5"
+                  />
+                </div>
+              )}
+
+              {/* Table Content Body */}
+              {itemType === 'table' && (
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="overflow-x-auto rounded-lg bg-neutral-950/60 border border-white/5">
+                    <table className="w-full border-collapse text-[11px]">
+                      <thead>
+                        <tr className="border-b border-white/10 text-neutral-400 bg-white/5">
+                          {(item.tableData?.columns || [
+                            { id: 'c1', header: 'Item' },
+                            { id: 'c2', header: 'Valor' },
+                          ]).map((col) => (
+                            <th
+                              key={col.id}
+                              className="p-1.5 text-left font-mono font-medium text-[10px]"
+                            >
+                              {col.header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(item.tableData?.rows || []).map((row) => (
+                          <tr
+                            key={row.id}
+                            className="border-b border-white/5 last:border-none"
+                          >
+                            {(item.tableData?.columns || []).map((col) => (
+                              <td key={col.id} className="p-1">
+                                <input
+                                  type="text"
+                                  value={String(row.cells[col.id] || '')}
+                                  onChange={(e) =>
+                                    updateTableCell(
+                                      item.id,
+                                      row.id,
+                                      col.id,
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-transparent text-neutral-200 focus:outline-none w-full px-1"
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addTableRow(item.id)}
+                    className="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 px-1"
+                  >
+                    <Plus className="w-3 h-3" /> Adicionar linha
+                  </button>
+                </div>
+              )}
+
+              {/* Link Content Body */}
+              {itemType === 'link' && (
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="flex items-center gap-1.5 bg-neutral-950/80 px-2 py-1 rounded-md border border-neutral-800 text-[11px] font-mono">
+                    <input
+                      type="text"
+                      value={item.linkData?.url || ''}
+                      placeholder="https://..."
+                      onChange={(e) =>
+                        updateItem(item.id, {
+                          linkData: {
+                            ...(item.linkData || {
+                              status: 'online',
+                              title: item.title || 'Link',
+                              description: '',
+                              latencyMs: 0,
+                              lastChecked: '',
+                              sslSecure: true,
+                            }),
+                            url: e.target.value,
+                          },
+                        })
+                      }
+                      className="flex-1 bg-transparent text-cyan-400 focus:outline-none"
+                    />
+                    {item.linkData?.url && (
+                      <a
+                        href={
+                          item.linkData.url.startsWith('http')
+                            ? item.linkData.url
+                            : `https://${item.linkData.url}`
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-neutral-400 hover:text-white"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Task Content Body (Backwards compatible) */}
+              {itemType === 'task' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateItem(item.id, { done: !item.done })}
+                    className="text-neutral-400 hover:text-purple-400 shrink-0"
+                  >
+                    {item.done ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Circle className="w-3.5 h-3.5 text-neutral-500" />
+                    )}
+                  </button>
+                  <input
+                    type="text"
+                    value={item.text || ''}
+                    placeholder="Tarefa..."
+                    onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                    className={`bg-transparent border-none text-xs focus:outline-none w-full ${
+                      item.done ? 'line-through text-neutral-500' : 'text-neutral-200'
+                    }`}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Quick Add input at bottom */}
+      {/* Quick Add Bar: Buttons to insert items directly into column */}
       <div
-        className="p-1.5 bg-neutral-950/80 rounded-lg border border-neutral-800 space-y-1.5"
+        className="pt-2 border-t border-white/5 space-y-1.5"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-1">
-          <input
-            type="text"
-            value={newItemText}
-            onChange={(e) => setNewItemText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') addItem();
-            }}
-            placeholder="Adicionar novo card à coluna..."
-            className="flex-1 bg-transparent text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none px-1"
-          />
+        <span className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider block">
+          + Inserir dentro da coluna
+        </span>
+        <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            onClick={addItem}
-            className="p-1 rounded bg-purple-600 hover:bg-purple-500 text-white transition-colors"
+            onClick={() => addItemOfType('note')}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 text-[11px] font-medium transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <FileText className="w-3 h-3" />
+            <span>Nota</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => addItemOfType('checklist')}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium transition-colors"
+          >
+            <CheckSquare className="w-3 h-3" />
+            <span>Checklist</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => addItemOfType('table')}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 text-[11px] font-medium transition-colors"
+          >
+            <TableIcon className="w-3 h-3" />
+            <span>Tabela</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => addItemOfType('link')}
+            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-300 text-[11px] font-medium transition-colors"
+          >
+            <Globe className="w-3 h-3" />
+            <span>Link Web</span>
           </button>
         </div>
       </div>

@@ -16,10 +16,10 @@ export const SubBoardCard: React.FC<SubBoardCardProps> = ({
 }) => {
   const boardData: SubBoardCardData = card.boardData || {
     title: card.title,
-    description: 'Sub-quadro aninhado para desdobrar fluxos complexos',
-    itemCount: 6,
+    description: '',
+    itemCount: 0,
     coverColor: '#10b981',
-    tags: ['#projeto', '#milanote'],
+    tags: [],
   };
 
   const handleOpen = (e: React.MouseEvent) => {

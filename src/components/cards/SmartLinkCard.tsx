@@ -10,12 +10,12 @@ interface SmartLinkCardProps {
 
 export const SmartLinkCard: React.FC<SmartLinkCardProps> = ({ card, onUpdate }) => {
   const linkData: SmartLinkData = card.linkData || {
-    url: 'https://pampoboard.dev',
+    url: '',
     title: card.title,
-    description: 'Monitoramento web inteligente em tempo real',
+    description: '',
     status: 'online',
-    latencyMs: 28,
-    lastChecked: 'Agora mesmo',
+    latencyMs: 0,
+    lastChecked: '',
     sslSecure: true,
   };
 
