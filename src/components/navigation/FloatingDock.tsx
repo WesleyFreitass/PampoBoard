@@ -5,7 +5,7 @@ import {
   Hand,
   StickyNote,
   CheckSquare,
-  Box,
+  Image as ImageIcon,
   Globe,
   Layers,
   Magnet,
@@ -103,11 +103,11 @@ export const FloatingDock: React.FC<FloatingDockProps> = ({ store }) => {
           <button
             type="button"
             onClick={() => addCard('media')}
-            title="Criar Card de Mídia 3D & Áudio (M)"
+            title="Criar Card de Imagem (I)"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-emerald-500/15 transition-all active:scale-95"
           >
-            <Box className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline">Mídia / 3D</span>
+            <ImageIcon className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">Imagem</span>
           </button>
 
           <button

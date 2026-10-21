@@ -76,7 +76,7 @@ export function generateExecutiveSummary(
 
     if (card.type === 'media' && card.mediaData) {
       keyFindings.push(
-        `Mídia "${card.title}": Tipo ${card.mediaData.mediaType.toUpperCase()}`
+        `Imagem "${card.title}": ${card.mediaData.imageUrl ? 'Com imagem anexada' : 'Aguardando imagem'}`
       );
     }
   }

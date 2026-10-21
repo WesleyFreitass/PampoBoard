@@ -165,7 +165,6 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
           onConnectToCard();
         }
       }}
-      onDoubleClick={onExpand}
       className={`absolute select-none rounded-xl backdrop-blur-xl border transition-all duration-150 ${style.bg} ${
         isTargetCard
           ? 'cursor-crosshair ring-2 ring-cyan-400/80 shadow-2xl shadow-cyan-500/25 border-cyan-400 hover:ring-4 hover:ring-cyan-300'
@@ -246,20 +245,6 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
 
         {/* Action icons */}
         <div className="flex items-center gap-1 shrink-0 opacity-80 hover:opacity-100">
-          {onExpand && (
-            <button
-              type="button"
-              title="Expandir em tela cheia"
-              onClick={(e) => {
-                e.stopPropagation();
-                onExpand();
-              }}
-              className="p-1 rounded text-neutral-400 hover:text-neutral-200 hover:bg-white/10 transition-colors"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-
           <button
             type="button"
             title="Alterar tema de cor"
