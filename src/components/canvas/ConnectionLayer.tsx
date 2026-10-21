@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BoardCard, Connection, PortPosition, Position, ViewportTransform } from '../../types/board';
 import { computeBezierPath, getPortCoordinates } from '../../utils/bezier';
+import { sound } from '../../utils/sound';
 
 interface ConnectionLayerProps {
   connections: Connection[];
@@ -24,7 +25,10 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
   currentMousePos,
   activePulseConnectionId,
   onSelectConnection,
+  onDeleteConnection,
 }) => {
+  const [hoveredConnId, setHoveredConnId] = useState<string | null>(null);
+
   const cardMap = new Map<string, BoardCard>();
   cards.forEach((c) => cardMap.set(c.id, c));
 
@@ -103,25 +107,42 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
           const p1 = getPortCoordinates(fromCard, conn.fromPort, conn.fromItemId);
           const p2 = getPortCoordinates(toCard, conn.toPort, conn.toItemId);
 
-          const { path } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
+          const { path, midPoint } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
           const isSelected = selectedConnectionIds.includes(conn.id);
+          const isHovered = hoveredConnId === conn.id;
           const isPulsing = activePulseConnectionId === conn.id;
 
           const strokeColor = isPulsing
             ? '#f59e0b'
             : isSelected
             ? '#38bdf8'
+            : isHovered
+            ? '#c084fc'
             : conn.color || '#a855f7';
 
           return (
-            <g key={conn.id} className="cursor-pointer pointer-events-auto">
+            <g
+              key={conn.id}
+              className="cursor-pointer pointer-events-auto"
+              onMouseEnter={() => setHoveredConnId(conn.id)}
+              onMouseLeave={() => setHoveredConnId(null)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sound.playDelete();
+                onDeleteConnection(conn.id);
+              }}
+            >
               {/* Broad invisible stroke for easy click hit detection */}
               <path
                 d={path}
                 fill="none"
                 stroke="transparent"
                 strokeWidth="24"
-                onClick={() => onSelectConnection(conn.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectConnection(conn.id);
+                }}
               />
 
               {/* Glowing background halo */}
@@ -129,8 +150,8 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
                 d={path}
                 fill="none"
                 stroke={strokeColor}
-                strokeWidth={isPulsing || isSelected ? '7' : '5'}
-                strokeOpacity={isPulsing || isSelected ? '0.5' : '0.2'}
+                strokeWidth={isPulsing || isSelected ? '7' : isHovered ? '6' : '5'}
+                strokeOpacity={isPulsing || isSelected ? '0.5' : isHovered ? '0.4' : '0.2'}
                 filter="url(#glow-neon)"
               />
 
@@ -139,7 +160,7 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
                 d={path}
                 fill="none"
                 stroke={strokeColor}
-                strokeWidth={isPulsing ? '3.5' : isSelected ? '3' : '2.5'}
+                strokeWidth={isPulsing ? '3.5' : isSelected ? '3' : isHovered ? '3' : '2.5'}
                 strokeDasharray={conn.style === 'dashed' ? '6 4' : undefined}
                 markerEnd={
                   isPulsing
@@ -148,7 +169,10 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
                     ? 'url(#arrowhead-selected)'
                     : 'url(#arrowhead-default)'
                 }
-                onClick={() => onSelectConnection(conn.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectConnection(conn.id);
+                }}
                 className="transition-colors duration-200"
               />
 
@@ -157,6 +181,43 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
                 <circle r="5" fill="#f59e0b" filter="url(#glow-neon)">
                   <animateMotion path={path} dur="0.9s" repeatCount="1" />
                 </circle>
+              )}
+
+              {/* Midpoint interactive Delete Button */}
+              {(isSelected || isHovered) && (
+                <g
+                  transform={`translate(${midPoint.x}, ${midPoint.y})`}
+                  className="cursor-pointer group/del"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sound.playDelete();
+                    onDeleteConnection(conn.id);
+                  }}
+                >
+                  <title>Excluir seta (Del ou clique com botão direito)</title>
+                  {/* Subtle pulsing background ring when selected */}
+                  {isSelected && (
+                    <circle
+                      r="16"
+                      className="fill-none stroke-cyan-400/40 animate-ping"
+                      strokeWidth="1.5"
+                    />
+                  )}
+                  {/* Backdrop shadow disk */}
+                  <circle
+                    r="12"
+                    className="fill-neutral-900 stroke-rose-500/80 group-hover/del:fill-rose-600 group-hover/del:stroke-white transition-all duration-150 drop-shadow-md"
+                    strokeWidth="1.8"
+                  />
+                  {/* "X" Cross icon */}
+                  <path
+                    d="M -3.5 -3.5 L 3.5 3.5 M 3.5 -3.5 L -3.5 3.5"
+                    stroke="#f43f5e"
+                    className="group-hover/del:stroke-white transition-colors duration-150"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </g>
               )}
             </g>
           );

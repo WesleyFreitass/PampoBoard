@@ -13,7 +13,7 @@ import { ConnectionLayer } from './ConnectionLayer';
 import { findSnapPort, findSnapCardOrPort, getOptimalPortBetweenCards, getPortCoordinates } from '../../utils/bezier';
 import { PortPosition, Position, BoardCard, ColumnItem } from '../../types/board';
 import { sound } from '../../utils/sound';
-import { CheckCircle2, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle2, Image as ImageIcon, Trash2, Sparkles } from 'lucide-react';
 
 interface InfiniteCanvasProps {
   store: BoardStore;
@@ -135,9 +135,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
       if (isInputFocused) return;
 
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedCardIds.length > 0) {
-        e.preventDefault();
-        selectedCardIds.forEach((id) => deleteCard(id));
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedCardIds.length > 0) {
+          e.preventDefault();
+          selectedCardIds.forEach((id) => deleteCard(id));
+        }
+        if (selectedConnectionIds.length > 0) {
+          e.preventDefault();
+          selectedConnectionIds.forEach((id) => deleteConnection(id));
+          sound.playDelete();
+        }
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
@@ -248,7 +255,21 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('paste', handlePaste);
     };
-  }, [selectedCardIds, deleteCard, duplicateCard, undo, redo, clearSelection, setConnectingFrom, addPastedImageCard, addCard, updateCard, mouseCanvasPos]);
+  }, [
+    selectedCardIds,
+    selectedConnectionIds,
+    deleteCard,
+    deleteConnection,
+    duplicateCard,
+    undo,
+    redo,
+    clearSelection,
+    setConnectingFrom,
+    addPastedImageCard,
+    addCard,
+    updateCard,
+    mouseCanvasPos,
+  ]);
 
   // Pointer Down on Canvas
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
@@ -1151,6 +1172,48 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           <span className="text-[10px] font-mono text-purple-300 uppercase px-1.5 py-0.5 rounded bg-purple-500/20">
             {hoveredColumnId ? 'Mover para Coluna' : draggingItemOut.item.type || 'card'}
           </span>
+        </div>
+      )}
+      {/* Floating Action Pill when an arrow/connection is selected */}
+      {selectedConnectionIds.length > 0 && (
+        <div
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-neutral-700/80 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2 text-xs font-medium text-neutral-200">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span>
+              {selectedConnectionIds.length}{' '}
+              {selectedConnectionIds.length === 1 ? 'seta selecionada' : 'setas selecionadas'}
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-neutral-700" />
+
+          <button
+            type="button"
+            title="Disparar pulso na conexão selecionada"
+            onClick={() => {
+              selectedConnectionIds.forEach((id) => triggerPulse(id));
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/30 text-xs font-medium transition-all active:scale-95"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Testar Pulso</span>
+          </button>
+
+          <button
+            type="button"
+            title="Excluir seta selecionada (ou pressione Delete no teclado)"
+            onClick={() => {
+              selectedConnectionIds.forEach((id) => deleteConnection(id));
+              sound.playDelete();
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 text-xs font-medium transition-all active:scale-95 shadow-md shadow-rose-950/40"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Excluir Seta</span>
+          </button>
         </div>
       )}
     </div>
