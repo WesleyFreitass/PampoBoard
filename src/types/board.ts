@@ -163,8 +163,10 @@ export interface Connection {
   id: string;
   fromCardId: string;
   fromPort: PortPosition;
+  fromItemId?: string;
   toCardId: string;
   toPort: PortPosition;
+  toItemId?: string;
   rootBoardId?: string;
   parentBoardId?: string;
   label?: string; // e.g. "Dispara", "Gera", "Depende de"
@@ -224,7 +226,7 @@ export interface BoardState {
   theme: 'dark' | 'light';
   viewport: ViewportTransform;
   activeTool: 'select' | 'pan' | 'connect';
-  connectingFrom: { cardId: string; port: PortPosition } | null;
+  connectingFrom: { cardId: string; port: PortPosition; itemId?: string } | null;
   dragSelectionBox: { startX: number; startY: number; endX: number; endY: number } | null;
   isSnappingEnabled: boolean;
   lastSavedTimestamp: number;

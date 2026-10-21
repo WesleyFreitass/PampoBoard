@@ -339,14 +339,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
     // If releasing connection line, check if released over a card or snap port
     if (connectingFrom && mouseCanvasPos) {
-      const snap = findSnapCardOrPort(mouseCanvasPos, cards, connectingFrom.cardId, 45);
+      const snap = findSnapCardOrPort(mouseCanvasPos, cards, connectingFrom.cardId, connectingFrom.itemId, 45);
       if (snap) {
         addConnection(
           connectingFrom.cardId,
           connectingFrom.port,
           snap.cardId,
           snap.port,
-          ''
+          '',
+          connectingFrom.itemId,
+          snap.itemId
         );
         setToastMsg('Itens conectados com sucesso!');
         setTimeout(() => setToastMsg(null), 2500);
@@ -711,11 +713,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const startConnectPosRef = useRef<Position | null>(null);
 
   // Start connecting from an anchor port
-  const handleStartConnect = (cardId: string, port: PortPosition) => {
-    setConnectingFrom({ cardId, port });
+  const handleStartConnect = (cardId: string, port: PortPosition, itemId?: string) => {
+    setConnectingFrom({ cardId, port, itemId });
     const fromCard = cards.find((c) => c.id === cardId);
     if (fromCard) {
-      const portCoords = getPortCoordinates(fromCard, port);
+      const portCoords = getPortCoordinates(fromCard, port, itemId);
       setMouseCanvasPos(portCoords);
       startConnectPosRef.current = portCoords;
     }
@@ -739,14 +741,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const dist = Math.hypot(dx, dy);
 
       if (dist > 25) {
-        const snap = findSnapCardOrPort(worldPos, cards, connectingFrom.cardId, 60);
+        const snap = findSnapCardOrPort(worldPos, cards, connectingFrom.cardId, connectingFrom.itemId, 60);
         if (snap) {
           addConnection(
             connectingFrom.cardId,
             connectingFrom.port,
             snap.cardId,
             snap.port,
-            ''
+            '',
+            connectingFrom.itemId,
+            snap.itemId
           );
           setToastMsg('Itens conectados com sucesso!');
           setTimeout(() => setToastMsg(null), 2500);
@@ -774,13 +778,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
   // Connect to target port directly
   const handleConnectToPort = (targetCardId: string, targetPort: PortPosition) => {
-    if (!connectingFrom || connectingFrom.cardId === targetCardId) return;
+    if (!connectingFrom) return;
+    if (connectingFrom.cardId === targetCardId && !connectingFrom.itemId) return;
     addConnection(
       connectingFrom.cardId,
       connectingFrom.port,
       targetCardId,
       targetPort,
-      ''
+      '',
+      connectingFrom.itemId,
+      undefined
     );
     setConnectingFrom(null);
     setToastMsg('Itens conectados com sucesso!');
@@ -789,7 +796,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
   // Connect to target card with automatic best port calculation
   const handleConnectToCard = (targetCardId: string) => {
-    if (!connectingFrom || connectingFrom.cardId === targetCardId) return;
+    if (!connectingFrom) return;
+    if (connectingFrom.cardId === targetCardId && !connectingFrom.itemId) return;
     const fromCard = cards.find((c) => c.id === connectingFrom.cardId);
     const toCard = cards.find((c) => c.id === targetCardId);
     if (!fromCard || !toCard) return;
@@ -800,10 +808,34 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       connectingFrom.port,
       targetCardId,
       toPort,
-      ''
+      '',
+      connectingFrom.itemId,
+      undefined
     );
     setConnectingFrom(null);
     setToastMsg('Itens conectados com sucesso!');
+    setTimeout(() => setToastMsg(null), 2500);
+  };
+
+  // Connect to target item inside a column
+  const handleConnectToItemPort = (
+    targetCardId: string,
+    targetItemId: string,
+    targetPort: PortPosition
+  ) => {
+    if (!connectingFrom) return;
+    if (connectingFrom.cardId === targetCardId && connectingFrom.itemId === targetItemId) return;
+    addConnection(
+      connectingFrom.cardId,
+      connectingFrom.port,
+      targetCardId,
+      targetPort,
+      '',
+      connectingFrom.itemId,
+      targetItemId
+    );
+    setConnectingFrom(null);
+    setToastMsg('Item conectado com sucesso!');
     setTimeout(() => setToastMsg(null), 2500);
   };
 
@@ -954,6 +986,9 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                   onExtractToBoard={(item) => handleExtractItemFromColumn(card, item)}
                   onStartDragItemOut={(c, item, e) => handleStartDragItemOut(c, item, e)}
                   isDropTarget={hoveredColumnId === card.id}
+                  connectingFrom={connectingFrom}
+                  onStartConnectItem={(itemId, port) => handleStartConnect(card.id, port, itemId)}
+                  onConnectToItemPort={(itemId, port) => handleConnectToItemPort(card.id, itemId, port)}
                 />
               )}
 

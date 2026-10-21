@@ -7,7 +7,7 @@ interface ConnectionLayerProps {
   cards: BoardCard[];
   viewport: ViewportTransform;
   selectedConnectionIds: string[];
-  connectingFrom: { cardId: string; port: PortPosition } | null;
+  connectingFrom: { cardId: string; port: PortPosition; itemId?: string } | null;
   currentMousePos: Position | null;
   activePulseConnectionId?: string | null;
   onSelectConnection: (id: string) => void;
@@ -90,8 +90,18 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
           const toCard = cardMap.get(conn.toCardId);
           if (!fromCard || !toCard) return null;
 
-          const p1 = getPortCoordinates(fromCard, conn.fromPort);
-          const p2 = getPortCoordinates(toCard, conn.toPort);
+          // Skip if column item no longer exists
+          if (conn.fromItemId && fromCard.type === 'column') {
+            const exists = fromCard.columnData?.items?.some((i) => i.id === conn.fromItemId);
+            if (!exists) return null;
+          }
+          if (conn.toItemId && toCard.type === 'column') {
+            const exists = toCard.columnData?.items?.some((i) => i.id === conn.toItemId);
+            if (!exists) return null;
+          }
+
+          const p1 = getPortCoordinates(fromCard, conn.fromPort, conn.fromItemId);
+          const p2 = getPortCoordinates(toCard, conn.toPort, conn.toItemId);
 
           const { path } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
           const isSelected = selectedConnectionIds.includes(conn.id);
@@ -156,7 +166,7 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
         {connectingFrom && currentMousePos && (() => {
           const fromCard = cardMap.get(connectingFrom.cardId);
           if (!fromCard) return null;
-          const p1 = getPortCoordinates(fromCard, connectingFrom.port);
+          const p1 = getPortCoordinates(fromCard, connectingFrom.port, connectingFrom.itemId);
           const { path } = computeBezierPath(p1, connectingFrom.port, currentMousePos);
 
           return (

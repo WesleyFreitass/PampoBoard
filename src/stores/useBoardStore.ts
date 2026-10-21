@@ -77,7 +77,7 @@ export function useBoardStore() {
   const [viewMode, setViewMode] = useState<ViewMode>('free');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'connect'>('select');
-  const [connectingFrom, setConnectingFrom] = useState<{ cardId: string; port: PortPosition } | null>(null);
+  const [connectingFrom, setConnectingFrom] = useState<{ cardId: string; port: PortPosition; itemId?: string } | null>(null);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
   const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
@@ -821,9 +821,12 @@ export function useBoardStore() {
       fromPort: PortPosition,
       toCardId: string,
       toPort: PortPosition,
-      label: string = ''
+      label: string = '',
+      fromItemId?: string,
+      toItemId?: string
     ) => {
-      if (fromCardId === toCardId) return; // Prevent self-loop if desired
+      // Prevent connecting to self unless it's between different items
+      if (fromCardId === toCardId && (!fromItemId || !toItemId || fromItemId === toItemId)) return;
       pushHistory();
       sound.playConnect();
 
@@ -833,7 +836,9 @@ export function useBoardStore() {
           c.fromCardId === fromCardId &&
           c.toCardId === toCardId &&
           c.fromPort === fromPort &&
-          c.toPort === toPort
+          c.toPort === toPort &&
+          c.fromItemId === fromItemId &&
+          c.toItemId === toItemId
       );
       if (exists) return;
 
@@ -841,8 +846,10 @@ export function useBoardStore() {
         id: `conn-${Date.now()}`,
         fromCardId,
         fromPort,
+        fromItemId,
         toCardId,
         toPort,
+        toItemId,
         rootBoardId: activeWorkspaceId,
         parentBoardId: activeBoardId,
         label,

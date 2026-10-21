@@ -1,7 +1,52 @@
 import { BoardCard, PortPosition, Position } from '../types/board';
 
-export function getPortCoordinates(card: BoardCard, port: PortPosition): Position {
+export function getPortCoordinates(
+  card: BoardCard,
+  port: PortPosition,
+  itemId?: string
+): Position {
   const { x, y, width, height } = card;
+
+  if (itemId) {
+    if (typeof document !== 'undefined') {
+      const itemEl = document.getElementById(`col-item-${itemId}`);
+      const cardEl = document.getElementById(`card-${card.id}`);
+
+      if (itemEl && cardEl) {
+        const itemRect = itemEl.getBoundingClientRect();
+        const cardRect = cardEl.getBoundingClientRect();
+        const zoom = cardRect.width > 0 ? cardRect.width / width : 1;
+
+        const relCenterY = (itemRect.top + itemRect.height / 2 - cardRect.top) / zoom;
+        const relLeft = (itemRect.left - cardRect.left) / zoom;
+        const relRight = (itemRect.right - cardRect.left) / zoom;
+
+        switch (port) {
+          case 'left':
+            return { x: x + relLeft, y: y + relCenterY };
+          case 'right':
+            return { x: x + relRight, y: y + relCenterY };
+          case 'top':
+            return { x: x + (relLeft + relRight) / 2, y: y + (itemRect.top - cardRect.top) / zoom };
+          case 'bottom':
+            return { x: x + (relLeft + relRight) / 2, y: y + (itemRect.bottom - cardRect.top) / zoom };
+        }
+      }
+    }
+
+    // Fallback if DOM element is not mounted/measured yet
+    if (card.columnData?.items) {
+      const idx = card.columnData.items.findIndex((i) => i.id === itemId);
+      if (idx !== -1) {
+        const approxRelY = Math.min(height - 20, Math.max(50, 60 + idx * 75 + 30));
+        return {
+          x: port === 'left' ? x + 16 : x + width - 16,
+          y: y + approxRelY,
+        };
+      }
+    }
+  }
+
   switch (port) {
     case 'top':
       return { x: x + width / 2, y };
@@ -84,21 +129,40 @@ export function findSnapPort(
   pos: Position,
   cards: BoardCard[],
   excludeCardId?: string,
+  excludeItemId?: string,
   threshold: number = 28
-): { cardId: string; port: PortPosition; pos: Position } | null {
-  let closest: { cardId: string; port: PortPosition; pos: Position } | null = null;
+): { cardId: string; port: PortPosition; pos: Position; itemId?: string } | null {
+  let closest: { cardId: string; port: PortPosition; pos: Position; itemId?: string } | null = null;
   let minDistance = threshold;
 
   const ports: PortPosition[] = ['top', 'right', 'bottom', 'left'];
 
   for (const card of cards) {
-    if (card.id === excludeCardId) continue;
-    for (const port of ports) {
-      const portPos = getPortCoordinates(card, port);
-      const d = Math.hypot(pos.x - portPos.x, pos.y - portPos.y);
-      if (d < minDistance) {
-        minDistance = d;
-        closest = { cardId: card.id, port, pos: portPos };
+    // 1. Check card ports (skip if entire card is excluded and no item is specified)
+    if (card.id !== excludeCardId || excludeItemId) {
+      for (const port of ports) {
+        const portPos = getPortCoordinates(card, port);
+        const d = Math.hypot(pos.x - portPos.x, pos.y - portPos.y);
+        if (d < minDistance) {
+          minDistance = d;
+          closest = { cardId: card.id, port, pos: portPos };
+        }
+      }
+    }
+
+    // 2. Check column items ports
+    if (card.type === 'column' && card.columnData?.items) {
+      for (const item of card.columnData.items) {
+        if (card.id === excludeCardId && item.id === excludeItemId) continue;
+        const itemPorts: PortPosition[] = ['left', 'right'];
+        for (const port of itemPorts) {
+          const portPos = getPortCoordinates(card, port, item.id);
+          const d = Math.hypot(pos.x - portPos.x, pos.y - portPos.y);
+          if (d < minDistance) {
+            minDistance = d;
+            closest = { cardId: card.id, port, pos: portPos, itemId: item.id };
+          }
+        }
       }
     }
   }
@@ -137,15 +201,43 @@ export function findSnapCardOrPort(
   pos: Position,
   cards: BoardCard[],
   excludeCardId?: string,
+  excludeItemId?: string,
   threshold: number = 36
-): { cardId: string; port: PortPosition; pos: Position } | null {
-  // 1. Direct port snap check
-  const portSnap = findSnapPort(pos, cards, excludeCardId, threshold);
+): { cardId: string; port: PortPosition; pos: Position; itemId?: string } | null {
+  // 1. Direct port snap check (both card and column item ports)
+  const portSnap = findSnapPort(pos, cards, excludeCardId, excludeItemId, threshold);
   if (portSnap) return portSnap;
 
-  // 2. Card bounding box with generous margin
+  // 2. Column Item bounding box check
   for (const card of cards) {
-    if (card.id === excludeCardId) continue;
+    if (card.type === 'column' && card.columnData?.items) {
+      for (const item of card.columnData.items) {
+        if (card.id === excludeCardId && item.id === excludeItemId) continue;
+        const leftCoords = getPortCoordinates(card, 'left', item.id);
+        const rightCoords = getPortCoordinates(card, 'right', item.id);
+        const itemMinX = Math.min(leftCoords.x, rightCoords.x) - 10;
+        const itemMaxX = Math.max(leftCoords.x, rightCoords.x) + 10;
+        const itemMinY = leftCoords.y - 25;
+        const itemMaxY = leftCoords.y + 25;
+
+        if (pos.x >= itemMinX && pos.x <= itemMaxX && pos.y >= itemMinY && pos.y <= itemMaxY) {
+          const dLeft = Math.hypot(pos.x - leftCoords.x, pos.y - leftCoords.y);
+          const dRight = Math.hypot(pos.x - rightCoords.x, pos.y - rightCoords.y);
+          const bestPort: PortPosition = dLeft < dRight ? 'left' : 'right';
+          return {
+            cardId: card.id,
+            port: bestPort,
+            pos: bestPort === 'left' ? leftCoords : rightCoords,
+            itemId: item.id,
+          };
+        }
+      }
+    }
+  }
+
+  // 3. Card bounding box with generous margin
+  for (const card of cards) {
+    if (card.id === excludeCardId && !excludeItemId) continue;
     const margin = 24;
     if (
       pos.x >= card.x - margin &&
@@ -168,6 +260,6 @@ export function findSnapCardOrPort(
     }
   }
 
-  // 3. Generous proximity fallback (up to 70px)
-  return findSnapPort(pos, cards, excludeCardId, 70);
+  // 4. Generous proximity fallback (up to 70px)
+  return findSnapPort(pos, cards, excludeCardId, excludeItemId, 70);
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BoardCard, ColumnCardData, ColumnItem, NoteChecklistItem } from '../../types/board';
+import { BoardCard, ColumnCardData, ColumnItem, NoteChecklistItem, PortPosition } from '../../types/board';
 import {
   Plus,
   Trash2,
@@ -25,6 +25,9 @@ interface ColumnCardProps {
   onExtractToBoard?: (item: ColumnItem) => void;
   onStartDragItemOut?: (columnCard: BoardCard, item: ColumnItem, startEvt: React.PointerEvent) => void;
   isDropTarget?: boolean;
+  connectingFrom?: { cardId: string; port: PortPosition; itemId?: string } | null;
+  onStartConnectItem?: (itemId: string, port: PortPosition) => void;
+  onConnectToItemPort?: (itemId: string, port: PortPosition) => void;
 }
 
 export const ColumnCard: React.FC<ColumnCardProps> = ({
@@ -33,6 +36,9 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
   onExtractToBoard,
   onStartDragItemOut,
   isDropTarget = false,
+  connectingFrom,
+  onStartConnectItem,
+  onConnectToItemPort,
 }) => {
   const columnData: ColumnCardData = card.columnData || {
     title: card.title,
@@ -168,7 +174,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
       )}
 
       {/* Stack of Cards Inside the Column */}
-      <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+      <div className="space-y-2.5 max-h-[480px] overflow-y-auto px-2 -mx-2 py-1">
         {columnData.items.length === 0 && !isDropTarget && (
           <div className="p-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-neutral-400 space-y-1">
             <p className="font-medium text-neutral-300">Coluna vazia</p>
@@ -180,13 +186,132 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
 
         {columnData.items.map((item, idx) => {
           const itemType = item.type || (item.text !== undefined ? 'task' : 'note');
+          const isItemSource =
+            connectingFrom?.cardId === card.id && connectingFrom?.itemId === item.id;
+          const isItemTarget = !!connectingFrom && !isItemSource;
 
           return (
             <div
               key={item.id}
-              className="group/item relative rounded-xl border border-neutral-700/80 bg-neutral-900/90 hover:border-purple-500/50 transition-all p-3 shadow-md space-y-2"
-              onPointerDown={(e) => e.stopPropagation()}
+              id={`col-item-${item.id}`}
+              onClick={(e) => {
+                if (isItemTarget && onConnectToItemPort) {
+                  e.stopPropagation();
+                  onConnectToItemPort(item.id, 'left');
+                }
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (isItemTarget && onConnectToItemPort) {
+                  onConnectToItemPort(item.id, 'left');
+                }
+              }}
+              onPointerUp={(e) => {
+                if (isItemTarget && onConnectToItemPort) {
+                  e.stopPropagation();
+                }
+              }}
+              className={`group/item relative rounded-xl border bg-neutral-900/90 transition-all p-3 shadow-md space-y-2 ${
+                isItemTarget
+                  ? 'cursor-crosshair ring-2 ring-cyan-400/80 border-cyan-400 hover:ring-cyan-300 shadow-cyan-500/20'
+                  : isItemSource
+                  ? 'ring-2 ring-indigo-400/80 border-indigo-400'
+                  : 'border-neutral-700/80 hover:border-purple-500/50'
+              }`}
             >
+              {/* Item Left Anchor Port */}
+              <button
+                type="button"
+                data-port="left"
+                data-item-id={item.id}
+                title={
+                  isItemTarget
+                    ? 'Clique para ligar a este item (esquerda)'
+                    : 'Conectar item (esquerda)'
+                }
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  if (isItemTarget && onConnectToItemPort) {
+                    onConnectToItemPort(item.id, 'left');
+                  } else if (onStartConnectItem) {
+                    onStartConnectItem(item.id, 'left');
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isItemTarget && onConnectToItemPort) {
+                    onConnectToItemPort(item.id, 'left');
+                  }
+                }}
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  if (isItemTarget && onConnectToItemPort) {
+                    onConnectToItemPort(item.id, 'left');
+                  }
+                }}
+                className={`absolute -left-2 top-1/2 -translate-y-1/2 z-30 w-4.5 h-4.5 rounded-full border-2 transition-all duration-150 flex items-center justify-center cursor-crosshair ${
+                  isItemTarget
+                    ? 'opacity-100 scale-125 bg-cyan-950 border-cyan-400 ring-2 ring-cyan-400/60 shadow-lg shadow-cyan-400/50 hover:scale-150 hover:bg-cyan-400 hover:border-white animate-pulse'
+                    : isItemSource && connectingFrom?.port === 'left'
+                    ? 'opacity-100 scale-110 bg-indigo-950 border-indigo-300 ring-2 ring-indigo-400/40'
+                    : 'opacity-0 group-hover/item:opacity-100 scale-90 hover:scale-125 bg-neutral-900 border-purple-400 hover:border-white'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isItemTarget
+                      ? 'bg-cyan-300'
+                      : 'bg-purple-400 group-hover/item:bg-white'
+                  }`}
+                />
+              </button>
+
+              {/* Item Right Anchor Port */}
+              <button
+                type="button"
+                data-port="right"
+                data-item-id={item.id}
+                title={
+                  isItemTarget
+                    ? 'Clique para ligar a este item (direita)'
+                    : 'Conectar item (direita)'
+                }
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  if (isItemTarget && onConnectToItemPort) {
+                    onConnectToItemPort(item.id, 'right');
+                  } else if (onStartConnectItem) {
+                    onStartConnectItem(item.id, 'right');
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isItemTarget && onConnectToItemPort) {
+                    onConnectToItemPort(item.id, 'right');
+                  }
+                }}
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  if (isItemTarget && onConnectToItemPort) {
+                    onConnectToItemPort(item.id, 'right');
+                  }
+                }}
+                className={`absolute -right-2 top-1/2 -translate-y-1/2 z-30 w-4.5 h-4.5 rounded-full border-2 transition-all duration-150 flex items-center justify-center cursor-crosshair ${
+                  isItemTarget
+                    ? 'opacity-100 scale-125 bg-cyan-950 border-cyan-400 ring-2 ring-cyan-400/60 shadow-lg shadow-cyan-400/50 hover:scale-150 hover:bg-cyan-400 hover:border-white animate-pulse'
+                    : isItemSource && connectingFrom?.port === 'right'
+                    ? 'opacity-100 scale-110 bg-indigo-950 border-indigo-300 ring-2 ring-indigo-400/40'
+                    : 'opacity-0 group-hover/item:opacity-100 scale-90 hover:scale-125 bg-neutral-900 border-purple-400 hover:border-white'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isItemTarget
+                      ? 'bg-cyan-300'
+                      : 'bg-purple-400 group-hover/item:bg-white'
+                  }`}
+                />
+              </button>
               {/* Item Top Bar: Drag Grip + Icon + Title + Actions */}
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
