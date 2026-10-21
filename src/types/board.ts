@@ -29,6 +29,8 @@ export interface NoteChecklistItem {
 export interface NoteCardData {
   title: string;
   body: string;
+  isCode?: boolean;
+  language?: string;
   checklist?: NoteChecklistItem[];
   codeSnippet?: {
     code: string;
