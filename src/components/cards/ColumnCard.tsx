@@ -36,8 +36,6 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
     items: [],
   };
 
-  const [activeTab, setActiveTab] = useState<'all' | 'add'>('all');
-
   const updateItems = (newItems: ColumnItem[]) => {
     onUpdate({
       columnData: {
@@ -68,67 +66,6 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
     newItems[targetIdx] = temp;
     sound.playClick();
     updateItems(newItems);
-  };
-
-  // Add specific card types inside the column
-  const addItemOfType = (type: 'note' | 'checklist' | 'table' | 'link' | 'task') => {
-    sound.playClick();
-    let newItem: ColumnItem;
-    const ts = Date.now();
-
-    if (type === 'note') {
-      newItem = {
-        id: `ci-note-${ts}`,
-        type: 'note',
-        title: 'Nota',
-        body: '',
-      };
-    } else if (type === 'checklist') {
-      newItem = {
-        id: `ci-chk-${ts}`,
-        type: 'checklist',
-        title: 'Checklist',
-        checklist: [],
-      };
-    } else if (type === 'table') {
-      newItem = {
-        id: `ci-tbl-${ts}`,
-        type: 'table',
-        title: 'Tabela',
-        tableData: {
-          title: 'Tabela',
-          columns: [
-            { id: 'c1', header: 'Item', type: 'text', width: 140 },
-            { id: 'c2', header: 'Valor', type: 'text', width: 140 },
-          ],
-          rows: [],
-        },
-      };
-    } else if (type === 'link') {
-      newItem = {
-        id: `ci-lnk-${ts}`,
-        type: 'link',
-        title: 'Link',
-        linkData: {
-          url: '',
-          title: 'Link',
-          description: '',
-          status: 'online',
-          latencyMs: 0,
-          lastChecked: '',
-          sslSecure: true,
-        },
-      };
-    } else {
-      newItem = {
-        id: `ci-tsk-${ts}`,
-        type: 'task',
-        text: '',
-        done: false,
-      };
-    }
-
-    updateItems([...columnData.items, newItem]);
   };
 
   // Checklist item management inside a column item
@@ -517,53 +454,6 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
             </div>
           );
         })}
-      </div>
-
-      {/* Quick Add Bar: Buttons to insert items directly into column */}
-      <div
-        className="pt-2 border-t border-white/5 space-y-1.5"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <span className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider block">
-          + Inserir dentro da coluna
-        </span>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button
-            type="button"
-            onClick={() => addItemOfType('note')}
-            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 text-[11px] font-medium transition-colors"
-          >
-            <FileText className="w-3 h-3" />
-            <span>Nota</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addItemOfType('checklist')}
-            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium transition-colors"
-          >
-            <CheckSquare className="w-3 h-3" />
-            <span>Checklist</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addItemOfType('table')}
-            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 text-[11px] font-medium transition-colors"
-          >
-            <TableIcon className="w-3 h-3" />
-            <span>Tabela</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addItemOfType('link')}
-            className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-300 text-[11px] font-medium transition-colors"
-          >
-            <Globe className="w-3 h-3" />
-            <span>Link Web</span>
-          </button>
-        </div>
       </div>
     </div>
   );

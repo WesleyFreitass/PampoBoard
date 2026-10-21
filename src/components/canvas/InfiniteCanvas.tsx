@@ -72,6 +72,11 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [hoveredColumnId, setHoveredColumnId] = useState<string | null>(null);
 
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
+  const lastMovedCardPosRef = useRef<{ x: number; y: number } | null>(null);
+  const hoveredColIdRef = useRef<string | null>(null);
+
   // Marquee selection state
   const [marqueeBox, setMarqueeBox] = useState<{
     startX: number;
@@ -454,61 +459,80 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       // Check if dragging single card over a column
       if (cardsToMove.length === 1) {
         const movedId = cardsToMove[0];
-        const cardObj = cards.find((c) => c.id === movedId);
+        const cardObj = cardsRef.current.find((c) => c.id === movedId);
         if (cardObj && cardObj.type !== 'column') {
           const orig = draggingCardRef.current!.initialCardPositions.find((o) => o.id === cardObj.id);
           const delta = deltas.find((d) => d.id === cardObj.id);
           const currentX = (orig?.x ?? cardObj.x) + (delta?.dx ?? 0);
           const currentY = (orig?.y ?? cardObj.y) + (delta?.dy ?? 0);
+          lastMovedCardPosRef.current = { x: currentX, y: currentY };
+
+          const mouseWorld = screenToWorld(moveEvt.clientX, moveEvt.clientY);
           const cx = currentX + cardObj.width / 2;
           const cy = currentY + 30;
 
-          const targetCol = cards.find(
+          const targetCol = cardsRef.current.find(
             (c) =>
               c.type === 'column' &&
               c.id !== movedId &&
-              cx >= c.x &&
-              cx <= c.x + c.width &&
-              cy >= c.y &&
-              cy <= c.y + c.height
+              (
+                (mouseWorld.x >= c.x && mouseWorld.x <= c.x + c.width &&
+                 mouseWorld.y >= c.y && mouseWorld.y <= c.y + c.height) ||
+                (cx >= c.x && cx <= c.x + c.width && cy >= c.y && cy <= c.y + c.height)
+              )
           );
-          setHoveredColumnId(targetCol ? targetCol.id : null);
+          hoveredColIdRef.current = targetCol ? targetCol.id : null;
+          setHoveredColumnId(hoveredColIdRef.current);
         }
       }
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (upEvt: PointerEvent) => {
       if (draggingCardRef.current && cardsToMove.length === 1) {
         const draggedCardId = cardsToMove[0];
-        const draggedCard = cards.find((c) => c.id === draggedCardId);
+        const allCards = cardsRef.current;
+        const draggedCard = allCards.find((c) => c.id === draggedCardId);
 
         if (draggedCard && draggedCard.type !== 'column') {
-          const cx = draggedCard.x + draggedCard.width / 2;
-          const cy = draggedCard.y + 30;
+          const mouseWorld = screenToWorld(upEvt.clientX, upEvt.clientY);
+          const lastPos = lastMovedCardPosRef.current;
+          const cardW = draggedCard.width || 320;
+          const cx = lastPos ? lastPos.x + cardW / 2 : mouseWorld.x;
+          const cy = lastPos ? lastPos.y + 30 : mouseWorld.y;
 
-          const targetCol = cards.find(
-            (c) =>
-              c.type === 'column' &&
-              c.id !== draggedCardId &&
-              cx >= c.x &&
-              cx <= c.x + c.width &&
-              cy >= c.y &&
-              cy <= c.y + c.height
-          );
+          // Find target column
+          let targetCol = hoveredColIdRef.current
+            ? allCards.find((c) => c.type === 'column' && c.id === hoveredColIdRef.current)
+            : undefined;
+
+          if (!targetCol) {
+            targetCol = allCards.find(
+              (c) =>
+                c.type === 'column' &&
+                c.id !== draggedCardId &&
+                (
+                  (mouseWorld.x >= c.x - 24 &&
+                   mouseWorld.x <= c.x + c.width + 24 &&
+                   mouseWorld.y >= c.y - 24 &&
+                   mouseWorld.y <= c.y + c.height + 40) ||
+                  (cx >= c.x && cx <= c.x + c.width && cy >= c.y && cy <= c.y + c.height)
+                )
+            );
+          }
 
           if (targetCol) {
             let newItem: ColumnItem;
             const ts = Date.now();
             if (draggedCard.type === 'table') {
               newItem = {
-                id: `ci-${ts}`,
+                id: `ci-tbl-${ts}`,
                 type: 'table',
                 title: draggedCard.title || 'Tabela',
                 tableData: draggedCard.tableData,
               };
             } else if (draggedCard.type === 'link') {
               newItem = {
-                id: `ci-${ts}`,
+                id: `ci-lnk-${ts}`,
                 type: 'link',
                 title: draggedCard.title || 'Link Web',
                 linkData: draggedCard.linkData,
@@ -518,7 +542,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 draggedCard.noteData?.checklist &&
                 draggedCard.noteData.checklist.length > 0;
               newItem = {
-                id: `ci-${ts}`,
+                id: `ci-${hasChecklist ? 'chk' : 'note'}-${ts}`,
                 type: hasChecklist ? 'checklist' : 'note',
                 title: draggedCard.title || 'Nota',
                 body: draggedCard.noteData?.body || '',
@@ -543,6 +567,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         }
       }
 
+      hoveredColIdRef.current = null;
+      lastMovedCardPosRef.current = null;
       setHoveredColumnId(null);
       draggingCardRef.current = null;
       window.removeEventListener('pointermove', handlePointerMove);
