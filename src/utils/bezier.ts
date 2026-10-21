@@ -56,6 +56,8 @@ export function getPortCoordinates(
       return { x: x + width / 2, y: y + height };
     case 'left':
       return { x, y: y + height / 2 };
+    default:
+      return { x: x + width / 2, y: y + height / 2 };
   }
 }
 
@@ -65,6 +67,9 @@ export function computeBezierPath(
   p2: Position,
   port2?: PortPosition
 ): { path: string; midPoint: Position } {
+  if (!p1 || !p2 || isNaN(p1.x) || isNaN(p1.y) || isNaN(p2.x) || isNaN(p2.y)) {
+    return { path: '', midPoint: { x: 0, y: 0 } };
+  }
   const dx = Math.abs(p2.x - p1.x);
   const dy = Math.abs(p2.y - p1.y);
   const distance = Math.sqrt(dx * dx + dy * dy);

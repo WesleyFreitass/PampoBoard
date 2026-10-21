@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   ExternalLink,
   GripVertical,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 
@@ -264,7 +265,7 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
         )}
 
         {columnData.items.map((item, idx) => {
-          const itemType = item.type || (item.text !== undefined ? 'task' : 'note');
+          const itemType = item.type || (item.mediaData ? 'media' : item.text !== undefined ? 'task' : 'note');
           const isItemSource =
             connectingFrom?.cardId === card.id && connectingFrom?.itemId === item.id;
           const isItemTarget = !!connectingFrom && !isItemSource;
@@ -402,6 +403,9 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
                     <GripVertical className="w-3.5 h-3.5" />
                   </div>
 
+                  {itemType === 'media' && (
+                    <ImageIcon className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                  )}
                   {itemType === 'note' && (
                     <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                   )}
@@ -475,6 +479,31 @@ export const ColumnCard: React.FC<ColumnCardProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Media (Image) Content Body */}
+              {itemType === 'media' && (
+                <div className="space-y-1.5 pt-0.5">
+                  {item.mediaData?.imageUrl ? (
+                    <div className="relative rounded-lg overflow-hidden bg-black/40 border border-white/5 max-h-52 group/img">
+                      <img
+                        src={item.mediaData.imageUrl}
+                        alt={item.title || 'Imagem'}
+                        className="w-full h-auto max-h-52 object-cover rounded-lg"
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-neutral-950/60 border border-dashed border-white/10 text-center text-xs text-neutral-400">
+                      Sem imagem disponível
+                    </div>
+                  )}
+                  {item.mediaData?.caption && (
+                    <p className="text-[11px] text-neutral-400 italic px-0.5">
+                      {item.mediaData.caption}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Note Content Body */}
               {itemType === 'note' && (

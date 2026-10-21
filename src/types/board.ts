@@ -102,7 +102,7 @@ export interface TableCardData {
   rows: TableRow[];
 }
 
-export type ColumnItemType = 'note' | 'checklist' | 'table' | 'link' | 'task';
+export type ColumnItemType = 'note' | 'checklist' | 'table' | 'link' | 'task' | 'media';
 
 export interface ColumnItem {
   id: string;
@@ -114,6 +114,7 @@ export interface ColumnItem {
   checklist?: NoteChecklistItem[];
   tableData?: TableCardData;
   linkData?: SmartLinkData;
+  mediaData?: MediaCardData;
   tag?: string;
 }
 

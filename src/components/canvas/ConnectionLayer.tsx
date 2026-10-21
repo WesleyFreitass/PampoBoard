@@ -104,23 +104,29 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
             if (!exists) return null;
           }
 
-          const p1 = getPortCoordinates(fromCard, conn.fromPort, conn.fromItemId);
-          const p2 = getPortCoordinates(toCard, conn.toPort, conn.toItemId);
+          try {
+            const p1 = getPortCoordinates(fromCard, conn.fromPort, conn.fromItemId);
+            const p2 = getPortCoordinates(toCard, conn.toPort, conn.toItemId);
+            if (!p1 || !p2 || isNaN(p1.x) || isNaN(p1.y) || isNaN(p2.x) || isNaN(p2.y)) {
+              return null;
+            }
 
-          const { path, midPoint } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
-          const isSelected = selectedConnectionIds.includes(conn.id);
-          const isHovered = hoveredConnId === conn.id;
-          const isPulsing = activePulseConnectionId === conn.id;
+            const { path, midPoint } = computeBezierPath(p1, conn.fromPort, p2, conn.toPort);
+            if (!path) return null;
 
-          const strokeColor = isPulsing
-            ? '#f59e0b'
-            : isSelected
-            ? '#38bdf8'
-            : isHovered
-            ? '#c084fc'
-            : conn.color || '#a855f7';
+            const isSelected = selectedConnectionIds.includes(conn.id);
+            const isHovered = hoveredConnId === conn.id;
+            const isPulsing = activePulseConnectionId === conn.id;
 
-          return (
+            const strokeColor = isPulsing
+              ? '#f59e0b'
+              : isSelected
+              ? '#38bdf8'
+              : isHovered
+              ? '#c084fc'
+              : conn.color || '#a855f7';
+
+            return (
             <g
               key={conn.id}
               className="cursor-pointer pointer-events-auto"
@@ -250,7 +256,11 @@ export const ConnectionLayer: React.FC<ConnectionLayerProps> = ({
               )}
             </g>
           );
-        })}
+        } catch (err) {
+          console.warn('Failed to render connection', conn.id, err);
+          return null;
+        }
+      })}
 
         {/* Live Preview Wire while user is dragging a port */}
         {connectingFrom && currentMousePos && (() => {

@@ -11,6 +11,7 @@ import {
   CardColor,
   BoardWorkspace,
   DrawingStroke,
+  ColumnItem,
 } from '../types/board';
 import { initialCards, initialConnections, initialZones, initialWorkspaces } from '../utils/sampleData';
 import { sound } from '../utils/sound';
@@ -694,6 +695,60 @@ export function useBoardStore() {
         prev.filter((conn) => conn.fromCardId !== id && conn.toCardId !== id)
       );
       setSelectedCardIds((prev) => prev.filter((selId) => selId !== id));
+    },
+    [pushHistory]
+  );
+
+  const absorbCardIntoColumn = useCallback(
+    (draggedCardId: string, targetColId: string, newItem: ColumnItem) => {
+      pushHistory();
+      sound.playConnect();
+
+      // 1. Add newItem to target column, and remove draggedCard from cards list
+      setCards((prev) =>
+        prev
+          .filter((c) => c.id !== draggedCardId)
+          .map((c) => {
+            if (c.id === targetColId) {
+              const currentItems = c.columnData?.items || [];
+              return {
+                ...c,
+                columnData: {
+                  title: c.columnData?.title || c.title,
+                  items: [...currentItems, newItem],
+                },
+              };
+            }
+            return c;
+          })
+      );
+
+      // 2. Migrate any connections linked to draggedCardId so they now attach to newItem in targetColId
+      setConnections((prev) =>
+        prev
+          .filter((conn) => {
+            // Remove connections that were between the dragged card and the column itself to avoid self-loops
+            const touchesDragged = conn.fromCardId === draggedCardId || conn.toCardId === draggedCardId;
+            const touchesColumn = conn.fromCardId === targetColId || conn.toCardId === targetColId;
+            return !(touchesDragged && touchesColumn);
+          })
+          .map((conn) => {
+            let updated = { ...conn };
+            if (updated.fromCardId === draggedCardId) {
+              updated.fromCardId = targetColId;
+              updated.fromItemId = newItem.id;
+              updated.fromPort = updated.fromPort === 'left' ? 'left' : 'right';
+            }
+            if (updated.toCardId === draggedCardId) {
+              updated.toCardId = targetColId;
+              updated.toItemId = newItem.id;
+              updated.toPort = updated.toPort === 'right' ? 'right' : 'left';
+            }
+            return updated;
+          })
+      );
+
+      setSelectedCardIds((prev) => prev.filter((id) => id !== draggedCardId));
     },
     [pushHistory]
   );
@@ -1825,6 +1880,7 @@ export function useBoardStore() {
     emptyTrash,
     duplicateCard,
     bringToFront,
+    absorbCardIntoColumn,
     // Zones
     addZone,
     updateZone,

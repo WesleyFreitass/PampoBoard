@@ -58,6 +58,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     deleteCard,
     duplicateCard,
     bringToFront,
+    absorbCardIntoColumn,
     updateZone,
     deleteZone,
     moveZoneAndChildren,
@@ -423,13 +424,25 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     const spawnX = columnCard.x + columnCard.width + 32;
     const spawnY = columnCard.y;
 
-    if (item.type === 'table') {
+    let createdCard: BoardCard | undefined;
+
+    if (item.type === 'media' || item.mediaData) {
+      const newCard = addCard('media', { x: spawnX, y: spawnY }, columnCard.color);
+      if (newCard) {
+        updateCard(newCard.id, {
+          title: item.title || 'Imagem',
+          mediaData: item.mediaData,
+        });
+        createdCard = newCard;
+      }
+    } else if (item.type === 'table') {
       const newCard = addCard('table', { x: spawnX, y: spawnY }, columnCard.color);
       if (newCard) {
         updateCard(newCard.id, {
           title: item.title || 'Tabela',
           tableData: item.tableData,
         });
+        createdCard = newCard;
       }
     } else if (item.type === 'link') {
       const newCard = addCard('link', { x: spawnX, y: spawnY }, columnCard.color);
@@ -438,6 +451,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           title: item.title || 'Link Web',
           linkData: item.linkData,
         });
+        createdCard = newCard;
       }
     } else if (item.type === 'checklist') {
       const newCard = addCard('checklist', { x: spawnX, y: spawnY }, columnCard.color);
@@ -449,6 +463,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             items: item.checklist || [],
           },
         });
+        createdCard = newCard;
       }
     } else {
       // note or task
@@ -462,7 +477,21 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             tags: item.tag ? [item.tag] : [],
           },
         });
+        createdCard = newCard;
       }
+    }
+
+    // Migrate connections attached to this item in the column to the new standalone card
+    if (createdCard) {
+      const cId = createdCard.id;
+      connections.forEach((conn) => {
+        if (conn.fromItemId === item.id && conn.fromCardId === columnCard.id) {
+          updateConnection(conn.id, { fromCardId: cId, fromItemId: undefined, fromPort: 'right' });
+        }
+        if (conn.toItemId === item.id && conn.toCardId === columnCard.id) {
+          updateConnection(conn.id, { toCardId: cId, toItemId: undefined, toPort: 'left' });
+        }
+      });
     }
 
     // Remove extracted item from the column
@@ -594,7 +623,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
         let createdCard: BoardCard | undefined;
 
-        if (item.type === 'table') {
+        if (item.type === 'media' || item.mediaData) {
+          const newCard = addCard('media', { x: spawnX, y: spawnY }, columnCard.color);
+          if (newCard) {
+            updateCard(newCard.id, {
+              title: item.title || 'Imagem',
+              mediaData: item.mediaData,
+            });
+            createdCard = newCard;
+          }
+        } else if (item.type === 'table') {
           const newCard = addCard('table', { x: spawnX, y: spawnY }, columnCard.color);
           if (newCard) {
             updateCard(newCard.id, {
@@ -797,7 +835,14 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
           if (targetCol) {
             let newItem: ColumnItem;
             const ts = Date.now();
-            if (draggedCard.type === 'table') {
+            if (draggedCard.type === 'media') {
+              newItem = {
+                id: `ci-media-${ts}`,
+                type: 'media',
+                title: draggedCard.title || 'Imagem',
+                mediaData: draggedCard.mediaData,
+              };
+            } else if (draggedCard.type === 'table') {
               newItem = {
                 id: `ci-tbl-${ts}`,
                 type: 'table',
@@ -823,20 +868,12 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 id: `ci-note-${ts}`,
                 type: 'note',
                 title: draggedCard.title || 'Nota',
-                body: draggedCard.noteData?.body || '',
+                body: draggedCard.noteData?.body || draggedCard.stickyData?.text || draggedCard.textData?.text || '',
                 tag: draggedCard.noteData?.tags?.[0],
               };
             }
 
-            const currentItems = targetCol.columnData?.items || [];
-            updateCard(targetCol.id, {
-              columnData: {
-                title: targetCol.columnData?.title || targetCol.title,
-                items: [...currentItems, newItem],
-              },
-            });
-
-            deleteCard(draggedCard.id);
+            absorbCardIntoColumn(draggedCard.id, targetCol.id, newItem);
             setToastMsg(`Card colocado na coluna "${targetCol.title}"!`);
             setTimeout(() => setToastMsg(null), 2500);
             sound.playConnect();
