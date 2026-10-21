@@ -418,7 +418,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     setTimeout(() => setToastMsg(null), 2500);
   };
 
-  // Milanote Column: Drag an item OUT of the column onto the free canvas
+  // Milanote Column: Drag an item OUT of the column onto the free canvas or into another column
   const handleStartDragItemOut = (
     columnCard: BoardCard,
     item: ColumnItem,
@@ -442,6 +442,20 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         clientX: moveEvt.clientX,
         clientY: moveEvt.clientY,
       });
+
+      // Detect if hovering over another column to highlight it as drop target
+      const mouseWorld = screenToWorld(moveEvt.clientX, moveEvt.clientY);
+      const targetCol = cardsRef.current.find(
+        (c) =>
+          c.type === 'column' &&
+          c.id !== columnCard.id &&
+          mouseWorld.x >= c.x - 12 &&
+          mouseWorld.x <= c.x + c.width + 12 &&
+          mouseWorld.y >= c.y - 12 &&
+          mouseWorld.y <= c.y + c.height + 12
+      );
+      hoveredColIdRef.current = targetCol ? targetCol.id : null;
+      setHoveredColumnId(hoveredColIdRef.current);
     };
 
     const handleItemPointerUp = (upEvt: PointerEvent) => {
@@ -452,8 +466,61 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
       const dx = Math.abs(upEvt.clientX - startX);
       const dy = Math.abs(upEvt.clientY - startY);
       const worldDrop = screenToWorld(upEvt.clientX, upEvt.clientY);
+      const allCards = cardsRef.current;
 
-      // Check if dropped outside the column bounds
+      // 1. Check if dropped over another column!
+      const targetCol = hoveredColIdRef.current
+        ? allCards.find((c) => c.type === 'column' && c.id === hoveredColIdRef.current)
+        : allCards.find(
+            (c) =>
+              c.type === 'column' &&
+              c.id !== columnCard.id &&
+              worldDrop.x >= c.x - 16 &&
+              worldDrop.x <= c.x + c.width + 16 &&
+              worldDrop.y >= c.y - 16 &&
+              worldDrop.y <= c.y + c.height + 16
+          );
+
+      hoveredColIdRef.current = null;
+      setHoveredColumnId(null);
+
+      if ((dx > 20 || dy > 20) && targetCol && targetCol.id !== columnCard.id) {
+        sound.playConnect();
+
+        // Remove item from source column
+        const currentItems = columnCard.columnData?.items || [];
+        updateCard(columnCard.id, {
+          columnData: {
+            title: columnCard.columnData?.title || columnCard.title,
+            items: currentItems.filter((i) => i.id !== item.id),
+          },
+        });
+
+        // Add item to target column
+        const targetItems = targetCol.columnData?.items || [];
+        updateCard(targetCol.id, {
+          columnData: {
+            title: targetCol.columnData?.title || targetCol.title,
+            items: [...targetItems, item],
+          },
+        });
+
+        // Retain any existing connections attached to this item
+        connections.forEach((conn) => {
+          if (conn.fromItemId === item.id && conn.fromCardId === columnCard.id) {
+            updateConnection(conn.id, { fromCardId: targetCol.id });
+          }
+          if (conn.toItemId === item.id && conn.toCardId === columnCard.id) {
+            updateConnection(conn.id, { toCardId: targetCol.id });
+          }
+        });
+
+        setToastMsg(`Card movido para "${targetCol.title || 'Coluna'}"!`);
+        setTimeout(() => setToastMsg(null), 2500);
+        return;
+      }
+
+      // 2. Check if dropped outside the source column bounds onto free canvas
       const isOutsideColumn =
         worldDrop.x < columnCard.x - 20 ||
         worldDrop.x > columnCard.x + columnCard.width + 20 ||
@@ -465,6 +532,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         const spawnX = Math.round(worldDrop.x - 160);
         const spawnY = Math.round(worldDrop.y - 40);
 
+        let createdCard: BoardCard | undefined;
+
         if (item.type === 'table') {
           const newCard = addCard('table', { x: spawnX, y: spawnY }, columnCard.color);
           if (newCard) {
@@ -472,6 +541,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               title: item.title || 'Tabela',
               tableData: item.tableData,
             });
+            createdCard = newCard;
           }
         } else if (item.type === 'link') {
           const newCard = addCard('link', { x: spawnX, y: spawnY }, columnCard.color);
@@ -480,6 +550,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
               title: item.title || 'Link Web',
               linkData: item.linkData,
             });
+            createdCard = newCard;
           }
         } else if (item.type === 'checklist') {
           const newCard = addCard('checklist', { x: spawnX, y: spawnY }, columnCard.color);
@@ -491,6 +562,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 items: item.checklist || [],
               },
             });
+            createdCard = newCard;
           }
         } else {
           // note or task
@@ -504,7 +576,21 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
                 tags: item.tag ? [item.tag] : [],
               },
             });
+            createdCard = newCard;
           }
+        }
+
+        // Migrate connections to the newly spawned card
+        if (createdCard) {
+          const cId = createdCard.id;
+          connections.forEach((conn) => {
+            if (conn.fromItemId === item.id && conn.fromCardId === columnCard.id) {
+              updateConnection(conn.id, { fromCardId: cId, fromItemId: undefined });
+            }
+            if (conn.toItemId === item.id && conn.toCardId === columnCard.id) {
+              updateConnection(conn.id, { toCardId: cId, toItemId: undefined });
+            }
+          });
         }
 
         // Remove item from column
@@ -1051,7 +1137,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         </div>
       )}
 
-      {/* Floating Ghost Card Follower when dragging item out of Column onto canvas */}
+      {/* Floating Ghost Card Follower when dragging item out of Column onto canvas or into another column */}
       {draggingItemOut && (
         <div
           style={{
@@ -1061,12 +1147,16 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
             pointerEvents: 'none',
             zIndex: 9999,
           }}
-          className="px-3.5 py-2.5 rounded-2xl bg-neutral-900/95 border-2 border-purple-400 shadow-2xl backdrop-blur-xl flex items-center gap-2.5 text-xs font-semibold text-white animate-in fade-in duration-100"
+          className={`px-3.5 py-2.5 rounded-2xl border-2 shadow-2xl backdrop-blur-xl flex items-center gap-2.5 text-xs font-semibold text-white animate-in fade-in duration-100 ${
+            hoveredColumnId
+              ? 'bg-purple-950/95 border-purple-300 ring-4 ring-purple-500/40 scale-105'
+              : 'bg-neutral-900/95 border-purple-400'
+          }`}
         >
           <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
           <span>{draggingItemOut.item.title || draggingItemOut.item.text || 'Item'}</span>
           <span className="text-[10px] font-mono text-purple-300 uppercase px-1.5 py-0.5 rounded bg-purple-500/20">
-            {draggingItemOut.item.type || 'card'}
+            {hoveredColumnId ? 'Mover para Coluna' : draggingItemOut.item.type || 'card'}
           </span>
         </div>
       )}
