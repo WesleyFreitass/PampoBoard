@@ -271,25 +271,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Design System 2026
               </div>
             </div>
-
-            {/* Mock Bottom Dock */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 flex items-center gap-2 shadow-2xl">
-              <div className="w-7 h-7 rounded-lg bg-indigo-600/30 text-indigo-300 flex items-center justify-center text-xs">
-                📝
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-yellow-500/30 text-yellow-300 flex items-center justify-center text-xs">
-                📌
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-purple-600/30 text-purple-300 flex items-center justify-center text-xs">
-                🗂️
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-cyan-600/30 text-cyan-300 flex items-center justify-center text-xs">
-                🖼️
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-emerald-600/30 text-emerald-300 flex items-center justify-center text-xs">
-                🔗
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -341,9 +322,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-5 border border-emerald-500/20 group-hover:scale-110 transition-transform">
               <Zap className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold mb-2">Conexões Magnéticas Bézier</h3>
+            <h3 className="text-lg font-bold mb-2">Conexões Magnéticas Fluídas</h3>
             <p className="text-xs md:text-sm text-neutral-400 leading-relaxed">
-              Conecte qualquer card a outro com setas suaves, etiquetas de texto e pulsos de fluxo dinâmicos em tempo real.
+              Conecte qualquer card a outro com setas dinâmicas e curvas suaves, rótulos de texto e pulsos de fluxo visual em tempo real.
             </p>
           </div>
 
@@ -470,28 +451,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* =========================================
           7. FOOTER
       ========================================== */}
-      <footer className="py-12 border-t border-white/5 text-center text-xs text-neutral-500 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
+      <footer className="py-10 border-t border-white/5 px-6 select-none">
+        <div className="max-w-6xl mx-auto flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             <PampoLogo size="xs" />
-            <span className="font-bold text-neutral-300">PampoBoard</span>
-            <span className="text-neutral-600">© 2026</span>
+            <span className="font-bold text-neutral-200">PampoBoard</span>
+            <span className="text-neutral-500">—</span>
+            <span className="text-neutral-400">
+              Bancada visual infinita para organizar projetos, notas e ideias com fluxo livre
+            </span>
           </div>
 
-          <div className="flex items-center gap-6">
-            <a href="https://pampo.tech" target="_blank" rel="noreferrer" className="hover:text-neutral-300 transition-colors">
-              Pampo Tech
-            </a>
-            <a href="/api/health" target="_blank" rel="noreferrer" className="hover:text-neutral-300 transition-colors">
-              Status da API
-            </a>
+          <div className="w-full border-t border-white/5 my-1" />
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-cyan-400 font-medium">PampoBoard</span>
+            <span className="text-neutral-600">•</span>
             <a
-              href="https://github.com/WesleyFreitass/PampoBoard"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-neutral-300 transition-colors"
+              href="https://pampoboard.pampo.tech"
+              className="text-cyan-400 font-medium hover:underline hover:text-cyan-300 transition-colors"
             >
-              GitHub
+              pampoboard.pampo.tech
             </a>
           </div>
         </div>
