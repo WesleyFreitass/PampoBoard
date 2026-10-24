@@ -117,7 +117,7 @@ export function App() {
             id: 'guest',
             name: 'Visitante',
             email: 'guest@pampoboard.local',
-            avatar: '/pampo-logo.jpg',
+            avatar: '/pampo-logo.png',
             role: 'guest',
           });
         }}
@@ -127,7 +127,7 @@ export function App() {
 
   return (
     <div
-      className={`relative w-screen h-screen overflow-hidden ${
+      className={`fixed inset-0 w-screen h-screen overflow-hidden select-none ${
         store.theme === 'dark' ? 'dark text-neutral-100 bg-[#0c0d12]' : 'text-neutral-900 bg-[#f8fafc]'
       }`}
     >

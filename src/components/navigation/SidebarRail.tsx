@@ -63,7 +63,7 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
           title="Pampo Board — Alternar Painel"
           className="group focus:outline-none transition-transform hover:scale-105 active:scale-95"
         >
-          <PampoLogo size="md" withFrame={true} />
+          <PampoLogo size="lg" />
         </button>
 
         {/* Navigation Action Icons */}

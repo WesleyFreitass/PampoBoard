@@ -109,7 +109,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <PampoLogo
             size="sm"
             withText={true}
-            withFrame={true}
             textSubtitle="Bancada Visual"
             onClick={onBackToLanding}
           />

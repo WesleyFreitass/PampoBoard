@@ -10,18 +10,18 @@ interface PampoLogoProps {
 }
 
 const sizeMap = {
-  xs: { box: 'w-6 h-6', rounded: 'rounded-md', textSize: 'text-sm' },
-  sm: { box: 'w-8 h-8', rounded: 'rounded-lg', textSize: 'text-base' },
-  md: { box: 'w-10 h-10', rounded: 'rounded-xl', textSize: 'text-lg' },
-  lg: { box: 'w-12 h-12', rounded: 'rounded-xl', textSize: 'text-xl' },
-  xl: { box: 'w-16 h-16', rounded: 'rounded-2xl', textSize: 'text-2xl' },
-  '2xl': { box: 'w-20 h-20', rounded: 'rounded-3xl', textSize: 'text-3xl' },
+  xs: { box: 'w-6 h-6', textSize: 'text-sm' },
+  sm: { box: 'w-8 h-8', textSize: 'text-base' },
+  md: { box: 'w-10 h-10', textSize: 'text-lg' },
+  lg: { box: 'w-12 h-12', textSize: 'text-xl' },
+  xl: { box: 'w-16 h-16', textSize: 'text-2xl' },
+  '2xl': { box: 'w-20 h-20', textSize: 'text-3xl' },
 };
 
 export const PampoLogo: React.FC<PampoLogoProps> = ({
   size = 'md',
   withText = false,
-  withFrame = true,
+  withFrame = false,
   textSubtitle,
   className = '',
   onClick,
@@ -32,18 +32,18 @@ export const PampoLogo: React.FC<PampoLogoProps> = ({
   const logoIcon = (
     <div
       style={customStyle}
-      className={`relative overflow-hidden transition-all duration-200 select-none ${
+      className={`relative inline-flex items-center justify-center transition-all duration-200 select-none flex-shrink-0 ${
         currentSize ? currentSize.box : ''
       } ${
         withFrame
-          ? `${currentSize?.rounded || 'rounded-xl'} bg-[#0e0f14] border border-white/10 shadow-lg shadow-black/50 group-hover:border-cyan-500/40 group-hover:shadow-cyan-500/10`
-          : ''
+          ? 'rounded-xl bg-[#0e0f14] border border-white/10 shadow-lg shadow-black/50'
+          : 'bg-transparent'
       } ${className}`}
     >
       <img
-        src="/pampo-logo.jpg"
+        src="/pampo-logo.png"
         alt="PampoBoard Logo"
-        className="w-full h-full object-cover scale-105 pointer-events-none"
+        className="w-full h-full object-contain pointer-events-none drop-shadow-sm filter"
         loading="eager"
       />
     </div>
@@ -66,11 +66,11 @@ export const PampoLogo: React.FC<PampoLogoProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`inline-flex items-center gap-3 group select-none ${onClick ? 'cursor-pointer' : ''}`}
+      className={`inline-flex items-center gap-2.5 group select-none ${onClick ? 'cursor-pointer hover:opacity-90' : ''}`}
     >
       {logoIcon}
       <div className="flex flex-col text-left">
-        <div className={`font-black tracking-tight leading-none ${currentSize?.textSize || 'text-lg'} text-white`}>
+        <div className={`font-black tracking-tight leading-none ${currentSize?.textSize || 'text-lg'} text-current`}>
           <span>Pampo</span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 ml-1">
             Board

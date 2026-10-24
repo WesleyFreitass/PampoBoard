@@ -66,9 +66,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       ========================================== */}
       <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b transition-colors bg-black/40 border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          {/* Logo with Frame */}
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <PampoLogo size="md" withText={true} withFrame={true} textSubtitle="Bancada Visual" />
+            <PampoLogo size="md" withText={true} textSubtitle="Bancada Visual" />
           </div>
 
           {/* Desktop Navigation Links */}
@@ -442,7 +442,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="relative z-10">
             <div className="mb-4 inline-flex items-center justify-center">
-              <PampoLogo size="lg" withFrame={true} />
+              <PampoLogo size="xl" />
             </div>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
               Pronto para transformar a sua produtividade visual?
@@ -473,7 +473,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <footer className="py-12 border-t border-white/5 text-center text-xs text-neutral-500 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <PampoLogo size="xs" withFrame={true} />
+            <PampoLogo size="xs" />
             <span className="font-bold text-neutral-300">PampoBoard</span>
             <span className="text-neutral-600">© 2026</span>
           </div>
