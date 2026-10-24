@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { api, AuthUser } from '../../services/api';
-import { Mail, Lock, User, ArrowRight, Sun, Moon, Sparkles, Layers, Box, Cpu, X } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sun, Moon, Sparkles, Layers, Box, Cpu, X, ArrowLeft } from 'lucide-react';
 import { GithubIcon, GoogleIcon } from '../common/SocialIcons';
+import { PampoLogo } from '../common/PampoLogo';
 import { sound } from '../../utils/sound';
 
 interface AuthScreenProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onSuccess: (user: AuthUser, defaultWsId?: string) => void;
+  initialTab?: 'login' | 'register';
+  onBackToLanding?: () => void;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   theme,
   onToggleTheme,
   onSuccess,
+  initialTab = 'login',
+  onBackToLanding,
 }) => {
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState<'login' | 'register'>(initialTab);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -86,13 +91,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     >
       {/* Top Bar with Brand & Theme Switcher */}
       <header className="w-full max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <span className="font-black text-lg text-black tracking-tighter">P</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <h1 className="text-base font-bold tracking-tight m-0">Pampo Board</h1>
-          </div>
+        <div className="flex items-center gap-4">
+          {onBackToLanding && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onBackToLanding();
+              }}
+              className="flex items-center gap-1.5 text-xs font-medium text-neutral-400 hover:text-cyan-400 transition-colors pr-2"
+              title="Voltar para a Página Inicial"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Início</span>
+            </button>
+          )}
+          <PampoLogo
+            size="sm"
+            withText={true}
+            withFrame={true}
+            textSubtitle="Bancada Visual"
+            onClick={onBackToLanding}
+          />
         </div>
 
         <button

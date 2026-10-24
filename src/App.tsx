@@ -19,6 +19,7 @@ import { AuthModal } from './components/modals/AuthModal';
 import { ShareModal } from './components/modals/ShareModal';
 import { ProfileModal } from './components/modals/ProfileModal';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { LandingPage } from './components/landing/LandingPage';
 import { BoardCard } from './types/board';
 import { ChevronsRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -36,6 +37,18 @@ export function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [selectedSubBoardCard, setSelectedSubBoardCard] = useState<BoardCard | null>(null);
+  const [publicView, setPublicView] = useState<'landing' | 'auth'>('landing');
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
+
+  // Check for URL query params (auth intent or OAuth callback)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authParam = params.get('auth');
+    if (authParam === 'login' || authParam === 'register') {
+      setAuthInitialTab(authParam);
+      setPublicView('auth');
+    }
+  }, []);
 
   // Check for OAuth callback in URL
   useEffect(() => {
@@ -71,14 +84,42 @@ export function App() {
 
   const sidebarOffset = isDrawerOpen ? 300 : 80;
 
-  // If user is not authenticated, strictly show Auth Screen
+  // If user is not authenticated, show Landing Page or Auth Screen
   if (!store.isAuthenticated) {
+    if (publicView === 'auth') {
+      return (
+        <AuthScreen
+          theme={store.theme}
+          initialTab={authInitialTab}
+          onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
+          onBackToLanding={() => setPublicView('landing')}
+          onSuccess={(user, defaultWsId) => {
+            store.login(user, defaultWsId);
+          }}
+        />
+      );
+    }
+
     return (
-      <AuthScreen
+      <LandingPage
         theme={store.theme}
         onToggleTheme={() => store.setTheme(store.theme === 'dark' ? 'light' : 'dark')}
-        onSuccess={(user, defaultWsId) => {
-          store.login(user, defaultWsId);
+        onOpenLogin={() => {
+          setAuthInitialTab('login');
+          setPublicView('auth');
+        }}
+        onOpenRegister={() => {
+          setAuthInitialTab('register');
+          setPublicView('auth');
+        }}
+        onExploreGuest={() => {
+          store.login({
+            id: 'guest',
+            name: 'Visitante',
+            email: 'guest@pampoboard.local',
+            avatar: '/pampo-logo.jpg',
+            role: 'guest',
+          });
         }}
       />
     );

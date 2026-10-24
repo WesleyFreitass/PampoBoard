@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { AuthUser } from '../../services/api';
+import { PampoLogo } from '../common/PampoLogo';
 
 interface SidebarRailProps {
   activeTab: 'boards' | 'settings' | 'trash' | 'history';
@@ -60,9 +61,9 @@ export const SidebarRail: React.FC<SidebarRailProps> = ({
             onToggleDrawer();
           }}
           title="Pampo Board — Alternar Painel"
-          className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 flex items-center justify-center shadow-md shadow-emerald-500/20 hover:scale-105 transition-transform"
+          className="group focus:outline-none transition-transform hover:scale-105 active:scale-95"
         >
-          <span className="font-black text-lg text-black tracking-tighter">P</span>
+          <PampoLogo size="md" withFrame={true} />
         </button>
 
         {/* Navigation Action Icons */}
