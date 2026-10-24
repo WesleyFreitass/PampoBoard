@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { X, Camera, Upload, Check, Sparkles, User, Link as LinkIcon, RefreshCw } from 'lucide-react';
-import { GithubIcon } from '../common/SocialIcons';
+import { X, Camera, Upload, Trash2, Check, User, Mail, RotateCcw } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { AuthUser } from '../../services/api';
 
@@ -23,54 +22,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   const [name, setName] = useState(user.name || '');
   const [avatar, setAvatar] = useState(user.avatar || '');
-  const [githubUser, setGithubUser] = useState('');
-  const [isFetchingGithub, setIsFetchingGithub] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const presets = [
-    `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.name || 'Pampo')}`,
-    'https://api.dicebear.com/7.x/bottts/svg?seed=CyberPampo',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=GamerPro',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=ArchitectNova',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=NeonMatrix',
-  ];
-
-  const handleFetchGithub = async () => {
-    if (!githubUser.trim()) {
-      setErrorMessage('Digite seu nome de usuário do GitHub');
-      return;
-    }
-    setErrorMessage(null);
-    setIsFetchingGithub(true);
-    try {
-      sound.playClick();
-      const clean = githubUser.trim();
-      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(clean)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAvatar(data.avatar_url);
-        if (!name.trim() && data.name) setName(data.name);
-        sound.playConnect();
-      } else {
-        // Direct github cdn fallback
-        setAvatar(`https://github.com/${encodeURIComponent(clean)}.png`);
-        sound.playConnect();
-      }
-    } catch {
-      setAvatar(`https://github.com/${encodeURIComponent(githubUser.trim())}.png`);
-    } finally {
-      setIsFetchingGithub(false);
-    }
-  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 4 * 1024 * 1024) {
-      setErrorMessage('A imagem deve ter no máximo 4MB');
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('A imagem deve ter no máximo 5MB');
       return;
     }
 
@@ -79,9 +40,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       if (event.target?.result) {
         setAvatar(event.target.result as string);
         sound.playConnect();
+        setErrorMessage(null);
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleResetToDefault = () => {
+    sound.playClick();
+    setAvatar(user.avatar || '');
+  };
+
+  const handleRemovePhoto = () => {
+    sound.playDelete();
+    setAvatar('');
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -136,24 +108,25 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
           <div>
             <h2 className="text-base font-bold tracking-tight m-0">Editar Perfil & Foto</h2>
-            <p className="text-xs text-neutral-400 m-0">Personalize sua foto de exibição no PampoBoard</p>
+            <p className="text-xs text-neutral-400 m-0">Personalize seu nome e foto de exibição no PampoBoard</p>
           </div>
         </div>
 
-        {/* Avatar Preview */}
+        {/* Avatar Section */}
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="relative group">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-indigo-500/40 shadow-xl shadow-indigo-500/20 bg-neutral-800 flex items-center justify-center">
+          <div className="relative group mb-3">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-indigo-500/40 shadow-xl shadow-indigo-500/15 bg-neutral-800 flex items-center justify-center">
               {avatar ? (
-                <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
+                <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-neutral-400" />
               )}
             </div>
+
             <label
               htmlFor="avatar-file-input"
               title="Carregar foto do computador"
-              className="absolute bottom-0 right-0 p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer transition-all hover:scale-110"
+              className="absolute bottom-0 right-0 p-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer transition-all hover:scale-110 active:scale-95"
             >
               <Camera className="w-3.5 h-3.5" />
               <input
@@ -165,9 +138,40 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               />
             </label>
           </div>
-          <span className="text-[11px] text-neutral-400 mt-2 font-mono">
-            {user.email}
-          </span>
+
+          {/* Action buttons below avatar */}
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="avatar-file-input"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/30 cursor-pointer transition-colors flex items-center gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Carregar foto</span>
+            </label>
+
+            {avatar && (
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 border border-white/5 transition-colors flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remover</span>
+              </button>
+            )}
+
+            {avatar !== user.avatar && user.avatar && (
+              <button
+                type="button"
+                onClick={handleResetToDefault}
+                title="Voltar para a foto do login"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/10 border border-white/5 transition-colors flex items-center gap-1"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Foto original</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
@@ -189,84 +193,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             />
           </div>
 
-          {/* GitHub Photo Pull */}
-          <div className="p-3 rounded-xl border border-white/5 bg-white/5 space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-300">
-              <GithubIcon className="w-3.5 h-3.5 text-neutral-300" />
-              <span>Puxar Foto do GitHub</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={githubUser}
-                onChange={(e) => setGithubUser(e.target.value)}
-                placeholder="Ex: WesleyFreitass"
-                className={`flex-1 px-3 py-1.5 rounded-lg text-xs border outline-none font-mono ${
-                  theme === 'dark'
-                    ? 'bg-neutral-900 border-neutral-700 text-white focus:border-purple-500'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900 focus:border-purple-500'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={handleFetchGithub}
-                disabled={isFetchingGithub}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 transition-colors flex items-center gap-1.5"
-              >
-                {isFetchingGithub ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <span>Puxar</span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Direct URL input */}
+          {/* Email (Read-only) */}
           <div>
-            <label className="block text-xs font-semibold mb-1 text-neutral-300">
-              Ou Link Direto da Foto (URL)
+            <label className="block text-xs font-semibold mb-1 text-neutral-400">
+              E-mail da Conta
             </label>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <LinkIcon className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-neutral-500" />
-                <input
-                  type="url"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                  placeholder="https://exemplo.com/foto.jpg"
-                  className={`w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border outline-none font-mono ${
-                    theme === 'dark'
-                      ? 'bg-neutral-900 border-neutral-700 text-white focus:border-indigo-500'
-                      : 'bg-neutral-50 border-neutral-300 text-neutral-900 focus:border-indigo-500'
-                  }`}
-                />
-              </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs border border-white/5 bg-white/[0.03] text-neutral-400 font-mono">
+              <Mail className="w-3.5 h-3.5 text-neutral-500" />
+              <span className="truncate">{user.email}</span>
             </div>
           </div>
 
-          {/* Presets */}
-          <div>
-            <span className="block text-[11px] font-semibold mb-1.5 text-neutral-400">
-              Modelos Rápidos de Avatar
+          {/* Hint */}
+          <div className="p-3 rounded-xl border border-indigo-500/15 bg-indigo-500/5 text-[11px] text-neutral-400 leading-relaxed flex items-start gap-2">
+            <span className="text-indigo-400 font-bold shrink-0">💡</span>
+            <span>
+              Sua foto do Google ou GitHub é puxada automaticamente por padrão. Se desejar, você pode enviar qualquer foto do seu computador acima.
             </span>
-            <div className="flex items-center gap-2">
-              {presets.map((presetUrl, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    sound.playClick();
-                    setAvatar(presetUrl);
-                  }}
-                  className={`w-9 h-9 rounded-full overflow-hidden border transition-transform hover:scale-110 ${
-                    avatar === presetUrl ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-white/10'
-                  }`}
-                >
-                  <img src={presetUrl} alt="Preset" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Feedback Messages */}
@@ -293,7 +236,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                <span>Salvar Foto & Perfil</span>
+                <span>Salvar Alterações</span>
               </>
             )}
           </button>
