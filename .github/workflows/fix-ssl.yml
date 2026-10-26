@@ -1,0 +1,45 @@
+name: Fix SSL Certificates (Universal RSA)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-ssl:
+    name: Fix SSL via SSH
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reemitir certificados SSL com RSA no padrao universal
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            echo "🔍 [1/4] Verificando certificados existentes na VPS..."
+            certbot certificates
+
+            echo "🔄 [2/4] Obtendo lista de nomes de certificados..."
+            CERT_NAMES=$(certbot certificates | grep "Certificate Name:" | awk '{print $3}' | tr '\n' ' ')
+            echo "Certificados encontrados: $CERT_NAMES"
+
+            for cert in $CERT_NAMES; do
+              echo "⚡ [3/4] Reemitindo certificado para: $cert com RSA e cadeia ISRG Root X1..."
+              certbot certonly --nginx \
+                --cert-name "$cert" \
+                --key-type rsa \
+                --preferred-chain "ISRG Root X1" \
+                --force-renewal \
+                --non-interactive \
+                --agree-tos || echo "⚠️ Aviso ao reemitir $cert, continuando..."
+            done
+
+            echo "🔍 [4/4] Validando sintaxe do Nginx..."
+            nginx -t
+
+            echo "🚀 Recarregando Nginx com a nova cadeia SSL..."
+            systemctl reload nginx
+
+            echo "✅ Certificados finais atualizados na VPS:"
+            certbot certificates
